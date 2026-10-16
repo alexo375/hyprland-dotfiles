@@ -1,6 +1,15 @@
-.hm-config.rasi
+# Nix build artifacts
+result
+result-*
+
+# Home Manager generated symlink trees
+.config/quickshell/overview/
+.config/kitty/kitty.conf
 
 # Logs
 *.log
 .config/OpenRGB/logs/
+
+# Temporary / sensitive
 .codex
+.hm-config.rasi

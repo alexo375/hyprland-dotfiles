@@ -1,50 +1,62 @@
-{ config, pkgs, ... }:
+{ config, pkgs, pkgs-unstable, pkgs-cli, hyprland, inputs, ... }:
 
 let
-  ideaVersion = "2025.2.6.1";
-  ideaUltimatePinned = pkgs.jetbrains.idea.overrideAttrs (_old: {
-    version = ideaVersion;
-    src = pkgs.fetchurl {
-      url = "https://download.jetbrains.com/idea/ideaIU-${ideaVersion}.tar.gz";
-      hash = "sha256-TOix8nLmQn3nCYmk5BQFSGuXxO8urN3Zv70bv5EtP7I=";
-    };
-  });
-  ideaVmOptions = pkgs.writeText "idea64.vmoptions" ''
-    -javaagent:/home/landilf/ProgrammingSoftware/JetBrains/jetbra/ja-netfilter.jar=jetbrains 
-    --add-opens=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED 
-    --add-opens=java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED
+  quickshellOverview = pkgs.runCommand "quickshell-overview-patched" { } ''
+    cp -R ${inputs.quickshell-overview}/. "$out"
+    substituteInPlace "$out/common/functions/ColorUtils.qml" \
+      --replace-fail \
+      'function applyAlpha(color, alpha) {' \
+      'function applyAlpha(color, alpha) { if (!color) return "transparent";'
+    substituteInPlace "$out/modules/overview/OverviewWindow.qml" \
+      --replace-fail \
+      'property var iconPath: Quickshell.iconPath(iconName, "image-missing")' \
+      'property var iconPath: entry?.icon ? Quickshell.iconPath(iconName) : ""'
   '';
-  ideaUltimateWrapped = ideaUltimatePinned.overrideAttrs (old: {
-    nativeBuildInputs = (old.nativeBuildInputs or []) ++ [ pkgs.makeWrapper ];
-    postFixup =
-      (old.postFixup or "")
-      + ''
-        if [ -x "$out/bin/idea-ultimate" ]; then
-          wrapProgram "$out/bin/idea-ultimate" --set IDEA_VM_OPTIONS "${ideaVmOptions}"
-        fi
-
-        if [ -x "$out/bin/idea" ]; then
-          wrapProgram "$out/bin/idea" --set IDEA_VM_OPTIONS "${ideaVmOptions}"
-        fi
-      '';
-  });
 in
 {
-
   imports = [
   ];
 
-  home.stateVersion = "25.11";
-  home.username = "landilf";
-  home.homeDirectory = "/home/landilf";
+  home.stateVersion = "26.05";
+  home.username = "alex";
+  home.homeDirectory = "/home/alex";
 
-  home.sessionVariables = {
-    ANDROID_HOME = "${config.home.homeDirectory}/ProgrammingSoftware/Android/Sdk";
-    ANDROID_SDK_ROOT = "${config.home.homeDirectory}/ProgrammingSoftware/Android/Sdk";
+  # Deploy Quickshell Overview
+  home.file.".config/quickshell/overview" = {
+    source = quickshellOverview;
+    recursive = true;
   };
+
+  home.file.".config/quickshell/overview/config.json".text = builtins.toJSON {
+    appearance = {
+      colorSource = "matugen";
+      font.family = {
+        main = "JetBrains Mono Nerd Font";
+        title = "JetBrains Mono Nerd Font";
+        expressive = "JetBrains Mono Nerd Font";
+      };
+    };
+    overview = {
+      rows = 2;
+      columns = 5;
+      hideEmptyRows = true;
+      previewsEnabled = true;
+      previewMode = "live";
+      includeInactiveMonitorPreviews = true;
+      showSpecialWorkspaces = true;
+      specialWorkspaces = [ "magic" ];
+    };
+  };
+
+  # Flatpak desktop integration
+  xdg.systemDirs.data = [
+    "/var/lib/flatpak/exports/share"
+    "/home/alex/.local/share/flatpak/exports/share"
+  ];
 
   # mimeApps
   xdg.mimeApps.enable = true;
+  xdg.configFile."mimeapps.list".force = true;
 
   xdg.mimeApps.defaultApplications = {
 
@@ -52,20 +64,26 @@ in
     "image/jpeg" = [ "imv.desktop" ];
     "image/png"  = [ "imv.desktop" ];
     "image/gif"  = [ "firefox.desktop" ];
-    "image/webp" = [ "org.gnome.eog.desktop" ];
+    "image/webp" = [ "imv.desktop" ];
     "image/heif" = [ "imv.desktop" ];
 
     # Text / Code
-    "text/plain" = [ "codium.desktop" ];
-    "text/css" = [ "codium.desktop" ];
-    "application/x-shellscript" = [ "codium.desktop" ];
-    "application/x-zerosize" = [ "codium.desktop" ];
+    "text/plain" = [ "code.desktop" ];
+    "text/css" = [ "code.desktop" ];
+    "application/x-shellscript" = [ "code.desktop" ];
+    "application/x-zerosize" = [ "code.desktop" ];
     "text/html" = [ "firefox.desktop" ];
 
     # Browser handlers
     "x-scheme-handler/http"  = [ "firefox.desktop" ];
     "x-scheme-handler/https" = [ "firefox.desktop" ];
+    "x-scheme-handler/ktalk" = [ "ktalk.desktop" ];
     "application/pdf" = [ "firefox.desktop" ];
+    "application/x-pdf" = [ "firefox.desktop" ];
+    "application/acrobat" = [ "firefox.desktop" ];
+    "application/vnd.pdf" = [ "firefox.desktop" ];
+    "application/vnd.adobe.pdf" = [ "firefox.desktop" ];
+    "text/pdf" = [ "firefox.desktop" ];
 
     # ---- Microsoft Word ----
     "application/msword" =
@@ -121,20 +139,14 @@ in
     "video/mpeg" = [ "mpv.desktop" ];
   };
 
-  # Android Studio Emulator fix
-  xdg.desktopEntries.android-studio = {
-    name = "Android Studio (stable channel)";
-    comment = "The official Android IDE";
-    categories = [ "Development" "IDE" ];
-    # Force XWayland for Qt-based tools like the Android Emulator, and make sure
-    # Android Studio and the emulator agree on SDK/adb paths.
-    exec = "android-studio-rofi";
-    icon = "android-studio";
-    startupNotify = true;
+  xdg.desktopEntries.steam = {
+    name = "Steam";
+    exec = "env STEAM_FORCE_DESKTOPUI_SCALING=1.5 GDK_SCALE=2 GDK_DPI_SCALE=0.75 steam -forcedesktopscaling 1.5 %U";
     terminal = false;
-    settings = {
-      StartupWMClass = "jetbrains-studio";
-    };
+    type = "Application";
+    icon = "steam";
+    categories = [ "Game" "Network" ];
+    mimeType = [ "x-scheme-handler/steam" "x-scheme-handler/steamlink" ];
   };
 
   # Firefox with pywalfox
@@ -146,6 +158,14 @@ in
 
   # Chromium 
   programs.chromium.enable = true;
+
+  # Force browser fallback to Firefox for tools that ignore mimeapps
+  home.sessionVariables = {
+    BROWSER = "firefox";
+    EDITOR = "micro";
+    VISUAL = "code";
+    JAVA_HOME = "${pkgs.jdk21}/lib/openjdk";
+  };
   
   # Fish shell configuration
   programs.fish = {
@@ -156,25 +176,31 @@ in
     '';
     functions = {
       kitty-theme = ''
+          kitty @ --to unix:/tmp/kitty set-colors /home/alex/.config/kitty/themes/Matugen.conf
           for socket in /tmp/kitty-*
-            kitty @ --to unix:$socket set-colors ~/.config/kitty/themes/Matugen.conf
+            test -S "$socket"; or continue
+            kitty @ --to unix:$socket set-colors /home/alex/.config/kitty/themes/Matugen.conf
           end
       '';
     };
     shellAliases = {
-      nrs = "sudo nixos-rebuild switch --flake ~/Hyprland-Dotfiles/NixOS#nix-btw";
-      nrb = "sudo nixos-rebuild boot --flake ~/Hyprland-Dotfiles/NixOS#nix-btw";
-      nfu = "nix flake update";
-      nce = "vim ~/Hyprland-Dotfiles/NixOS/configuration.nix";
-      nhe = "vim ~/Hyprland-Dotfiles/NixOS/home.nix";
-      nfe = "vim ~/Hyprland-Dotfiles/NixOS/flake.nix";
+      nrs = "sudo nixos-rebuild switch --flake /home/alex/hyprland-dotfiles/NixOS#nixos";
+      nrb = "sudo nixos-rebuild boot --flake /home/alex/hyprland-dotfiles/NixOS#nixos";
+      nfu = "nix flake update --flake /home/alex/hyprland-dotfiles/NixOS";
+      nce = "vim /home/alex/hyprland-dotfiles/NixOS/configuration.nix";
+      nhe = "vim /home/alex/hyprland-dotfiles/NixOS/home.nix";
+      nfe = "vim /home/alex/hyprland-dotfiles/NixOS/flake.nix";
       try = "nix-shell -p";
       ncg = "sudo nix-collect-garbage -d";
-      cff = "reset && nitch";  
-      ns = "nix-search-tv print | fzf --preview 'nix-search-tv preview {}' --scheme history";
+      neo = "neo --colormode=32 -C /home/alex/.config/neo/colors-matugen.neo";
       ls = "eza -la";
-      dcuw = "docker compose -f ~/.config/windows-docker/compose.yaml up -d";
-      dcdw = "docker compose -f ~/.config/windows-docker/compose.yaml down";
+      dcuw = "docker compose -f /home/alex/.config/windows-docker/compose.yaml up -d";
+      dcdw = "docker compose -f /home/alex/.config/windows-docker/compose.yaml down";
+      dnd = "dragon-drop -x -A";
+      g = "lazygit";
+      d = "lazydocker";
+      dwa = "yt-dlp -x --audio-format mp3 --cookies-from-browser firefox -N 50";
+      dla = "yt-dlp -x --audio-format mp3 --enable-file-urls";
     };
   };
   
@@ -184,13 +210,13 @@ in
     enableFishIntegration = true;
   };
 
-  # Git configuration (add your details)
+  # Git configuration
   programs.git = {
     enable = true;
     settings = {
       user = {
-        name = "Landilf";
-        email = "vladrumin4@gmail.com";
+        name = "Alexander";
+        email = "alexo375@yandex.ru";
       };
     };
   };
@@ -198,27 +224,8 @@ in
   # SwayOSD service
   services.swayosd.enable = true;
 
-  # KDE Connect configuration
-  services.kdeconnect = {
-    package = 
-      pkgs.kdePackages.kdeconnect-kde
-    ;
-    enable = true;
-    indicator = true;
-  };
-  
-  # OBS for screen recording
-  programs.obs-studio = {
-    enable = true;
-    plugins = with pkgs.obs-studio-plugins; [
-      obs-pipewire-audio-capture
-      obs-gstreamer
-      obs-vkcapture
-    ];
-    package = pkgs.obs-studio.override {
-      cudaSupport = true; 
-    };
-  };
+  # EasyEffects audio processing service
+  services.easyeffects.enable = true;
 
   # Video Player
   programs.mpv = {
@@ -249,8 +256,8 @@ in
     };
     font = {
       size = 14;
-      name = "JetBrains Mono Nerd Font";
-      package = pkgs.nerd-fonts.jetbrains-mono;
+      name = "FiraCode Nerd Font";
+      package = pkgs.nerd-fonts.fira-code;
     };
   };
   programs.rofi = {
@@ -260,36 +267,33 @@ in
     configPath = ".config/rofi/.hm-config.rasi";
   };
 
+  programs.home-manager.enable = true;
+
+  home.file.".local/bin" = {
+    source = ../misc/bin;
+    recursive = true;
+  };
+
   # User-specific packages
   home.packages = with pkgs; [
     adw-gtk3
-    android-studio
-    android-tools
-    (writeShellScriptBin "android-studio-rofi" ''
-      export QT_QPA_PLATFORM=xcb
-      export ANDROID_HOME="$HOME/ProgrammingSoftware/Android/Sdk"
-      export ANDROID_SDK_ROOT="$ANDROID_HOME"
-      export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
-      exec android-studio "$@"
-    '')
     ani-cli
     asciiquarium-transparent
-    blueman
     brightnessctl
     cava
     cbonsai
     cliphist
+    clock-rs
     dconf-editor
     decibels
-    discord
-    eza
+    pkgs-cli.eza
+    exiftool
     file-roller
     gimp
     git
     gnome-clocks
     grim
     gthumb
-    heroic
     hypridle
     hyprlock
     hyprpicker
@@ -297,12 +301,12 @@ in
     hyprshot
     hyprsunset
     imv
-    ideaUltimateWrapped
     jq
-    kdePackages.kamera
+    libreoffice
+    localsend
+    mediainfo
     nautilus
     nitch
-    nwg-dock-hyprland
     nwg-look
     obsidian
     pamixer
@@ -311,19 +315,24 @@ in
     python3Packages.pip
     python3Packages.virtualenv
     pywalfox-native
+    quickshell
+    qt6.qtwayland
+    rofimoji
     slurp
     socat
     stow
     swaynotificationcenter
-    swww
+    awww
     telegram-desktop
     tesseract
     unimatrix
-    vscodium
+    pkgs-unstable.qt6Packages.qt6ct
+    wf-recorder
+    vscode
     waybar
     wl-clip-persist
     wl-clipboard
-    yazi
+    pkgs-cli.yazi
     zenity
   ];
 }
