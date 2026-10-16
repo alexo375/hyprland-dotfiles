@@ -18,8 +18,10 @@ chosen=$(
 		" Permissions" \
 		" Programs" \
 		" Plugins" \
-		"󰆍 Scripts" \
-		" Windows and Workspaces" \
+		" Window Rules" \
+		"󱂬 Auto Window Rules" \
+		"󰥔 Idle Timers" \
+		"󰌾 Lockscreen" \
 		"󰥛 Animations (Variables!)" \
 		"󰘇 Decoration (Variables!)" |
 		rofi -dmenu -i -selected-row 1 -config "$HOME/.config/RofiScripts/SystemSettings/S_hyprland.rasi" -kb-move-char-back "" -kb-move-char-forward "" -kb-custom-1 "Left" -kb-accept-entry "Control+j,Control+m,Return,KP_Enter,Right"
@@ -27,23 +29,25 @@ chosen=$(
 rc=$?
 
 if [ "$rc" -eq 10 ] || [ "$chosen" = "$back_label" ]; then
-	~/.config/RofiScripts/SystemSettings/system.sh
+	~/.config/RofiScripts/Launcher/System.sh
 	exit 0
 fi
 
 case "$chosen" in
-   "󱓞 Autostart") codium ~/.config/hypr/hyprconfigs/hyprautostart.conf ;;
-   "󰪫 Environment") codium ~/.config/hypr/hyprconfigs/hyprenvironment.conf ;;
-   "󰍽 Input") codium ~/.config/hypr/hyprconfigs/hyprinput.conf ;;
-   "󰌌 Keybindings") codium ~/.config/hypr/hyprconfigs/hyprkeybinds.conf ;;
-   " Look and Feel") codium ~/.config/hypr/hyprconfigs/hyprlookandfeel.conf ;;
-   "󰍹 Monitors") codium ~/.config/hypr/hyprconfigs/hyprmonitors.conf ;;
-   " Permissions") codium ~/.config/hypr/hyprconfigs/hyprpermissions.conf ;;
-   " Programs") codium ~/.config/hypr/hyprconfigs/hyprprograms.conf ;;
-   " Plugins") codium ~/.config/hypr/hyprconfigs/hyprplugins.conf ;;
-   "󰆍 Scripts") ~/.config/RofiScripts/SystemSettings/scripts.sh ;;
-   " Windows and Workspaces") codium ~/.config/hypr/hyprconfigs/hyprwindowsandworkspaces.conf ;;
-   "󰥛 Animations (Variables!)") codium ~/.config/hypr/hyprconfigs/hypranimations.conf ;;
-   "󰘇 Decoration (Variables!)") codium ~/.config/hypr/hyprconfigs/hyprdecoration.conf ;;
+   "󱓞 Autostart") code ~/.config/hypr/lua/autostart.lua ;;
+   "󰪫 Environment") code ~/.config/hypr/lua/environment.lua ;;
+   "󰍽 Input") code ~/.config/hypr/lua/input.lua ;;
+   "󰌌 Keybindings") code ~/.config/hypr/lua/keybinds.lua ;;
+   " Look and Feel") code ~/.config/hypr/lua/lookandfeel.lua ;;
+   "󰍹 Monitors") code ~/.config/hypr/lua/monitors.lua ;;
+   " Permissions") code ~/.config/hypr/lua/permissions.lua ;;
+   " Programs") code ~/.config/hypr/lua/programs.lua ;;
+   " Plugins") code ~/.config/hypr/hyprland.lua ;;
+   " Window Rules") code ~/.config/hypr/lua/windowsandworkspaces.lua ;;
+   "󱂬 Auto Window Rules") code ~/.config/hypr/lua/windows-local.lua ;;
+   "󰥔 Idle Timers") code ~/.config/hypr/hypridle.conf ;;
+   "󰌾 Lockscreen") code ~/.config/hypr/hyprlock.conf ;;
+   "󰥛 Animations (Variables!)") code ~/.config/hypr/lua/lookandfeel.lua ;;
+   "󰘇 Decoration (Variables!)") code ~/.config/hypr/lua/lookandfeel.lua ;;
    *) exit 1 ;;
 esac
