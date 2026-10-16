@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 
-LOW_HZ="${LOW_HZ:-60}"
-HIGH_HZ="${HIGH_HZ:-144}"
+# Скрипт динамического переключения частоты обновления экрана (60Hz / 90Hz):
+# Используется в Waybar и меню производительности Rofi для экономии батареи ноутбука.
+# Поддерживает режимы:
+#   --status       (вывод текущей частоты с иконкой для статус-бара)
+#   --toggle       (переключение 60Hz <-> 90Hz)
+#   --set <hz>     (установка конкретной частоты)
 
-# Function to get the current monitor name
+LOW_HZ="${LOW_HZ:-60}"
+HIGH_HZ="${HIGH_HZ:-90}"
+
+# Определение имени активного монитора (по умолчанию eDP-1 ноутбука)
 get_monitor() {
     hyprctl monitors | grep "Monitor " | awk '{print $2}' | head -n 1
 }
 
+# Извлечение параметров текущего монитора: разрешение, частота, позиция и масштаб (scale)
 get_monitor_state() {
     local monitor="$1"
     hyprctl monitors | awk -v mon="$monitor" '
@@ -30,6 +37,7 @@ get_monitor_state() {
     '
 }
 
+# Применение новой частоты обновления через команду 'hyprctl keyword monitor'
 set_refresh() {
     local rate="$1"
     local monitor
@@ -42,13 +50,14 @@ set_refresh() {
     local res current_rate pos scale
     read -r res current_rate pos scale < <(get_monitor_state "$monitor")
 
-    res="${res:-1920x1080}"
+    res="${res:-2520x1680}"
     pos="${pos:-0x0}"
-    scale="${scale:-1}"
+    scale="${scale:-1.5}"
 
     hyprctl keyword monitor "$monitor,${res}@${rate},${pos},${scale}" >/dev/null
 }
 
+# Получение текущей частоты в виде целого числа
 get_current_rate_int() {
     local monitor="$1"
     local _res rate _pos _scale
@@ -58,6 +67,7 @@ get_current_rate_int() {
     printf "%s\n" "${rate:-0}"
 }
 
+# Печать статуса для Waybar
 print_status() {
     local monitor rate
     monitor="$(get_monitor)"
@@ -71,6 +81,7 @@ print_status() {
     fi
 }
 
+# Циклическое переключение частоты
 toggle_refresh() {
     local monitor rate
     monitor="$(get_monitor)"
@@ -97,7 +108,7 @@ case "${1:-}" in
         set_refresh "$1"
         ;;
     *)
-        echo "Usage: $0 [--status|--toggle|--set <hz>]" >&2
-        exit 2
+        echo "Использование: $0 [--status|--toggle|--set <hz>]" >&2
+        exit 1
         ;;
 esac
