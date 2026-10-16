@@ -1,41 +1,44 @@
 {
-  description = "NixOS with home-manager btw";
+  description = "Конфигурация NixOS с Home Manager и Hyprland";
 
   inputs = {
+    # Основной стабильный/текущий канал nixpkgs
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
+    # Нестабильный канал для свежих версий приложений
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
+    # Канал для инструментов VPN (Amnezia, Throne)
     nixpkgs-vpn.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # Agent/AI CLI packages are intentionally pinned and updated separately.
+    # ИИ-агенты и CLI-инструменты (изолированный набор)
     nixpkgs-agents.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # General CLI tools (like yazi, eza, lazygit)
+    # Основные CLI утилиты (Yazi, Eza, Lazygit)
     nixpkgs-cli.url = "github:nixos/nixpkgs/nixos-unstable";
 
+    # Аппаратные профили оборудования под ноутбуки и Intel
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
+    # Пользовательский менеджер конфигураций Home Manager
     home-manager.url = "github:nix-community/home-manager/master";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
+    # Генератор цветовых палитр Material You из обоев
     matugen = {
       url = "github:InioX/Matugen?ref=refs/tags/v3.1.0";
     };
 
-    # antigravity-nix = {
-    #   url = "github:jacopone/antigravity-nix";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
-
-    # Hyprland updated to latest version (v0.55+ with Lua configuration)
+    # Оконный менеджер Hyprland последней версии
     hyprland.url = "github:hyprwm/Hyprland";
 
+    # Обзорщик рабочих столов Quickshell Overview
     quickshell-overview = {
       url = "github:Shanu-Kumawat/quickshell-overview";
       flake = false;
     };
 
+    # Декларативное управление пакетами Flatpak
     nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
@@ -48,7 +51,6 @@
       nixpkgs-agents,
       nixpkgs-cli,
       nixos-hardware,
-      # antigravity-nix,
       hyprland,
       ...
     }:
@@ -65,7 +67,6 @@
       agentPkgs = import nixpkgs-agents {
         inherit system;
         config.allowUnfree = true;
-        # overlays = [ antigravity-nix.overlays.default ];
       };
       cliPkgs = import nixpkgs-cli {
         inherit system;
@@ -84,13 +85,20 @@
         };
 
         modules = [
+          # Аппаратные модули под процессор Intel, графику и ноутбук
           nixos-hardware.nixosModules.common-cpu-intel
           nixos-hardware.nixosModules.common-gpu-intel
           nixos-hardware.nixosModules.common-pc-laptop
           nixos-hardware.nixosModules.common-pc-ssd
+
+          # Системная конфигурация хоста
           ./configuration.nix
+
+          # Модули Flatpak
           inputs.nix-flatpak.nixosModules.nix-flatpak
           ./modules/flatpak.nix
+
+          # Пользовательская конфигурация Home Manager
           home-manager.nixosModules.home-manager
           {
             networking.hostName = "nixos";

@@ -1,6 +1,7 @@
 { config, pkgs, pkgs-unstable, pkgs-cli, hyprland, inputs, ... }:
 
 let
+  # Пропатченный обзорщик окон Quickshell Overview
   quickshellOverview = pkgs.runCommand "quickshell-overview-patched" { } ''
     cp -R ${inputs.quickshell-overview}/. "$out"
     substituteInPlace "$out/common/functions/ColorUtils.qml" \
@@ -21,12 +22,16 @@ in
   home.username = "alex";
   home.homeDirectory = "/home/alex";
 
-  # Deploy Quickshell Overview
+  # =========================================================================
+  # 1. Quickshell Overview (экран обзора рабочих столов по Win+Tab)
+  # =========================================================================
+
   home.file.".config/quickshell/overview" = {
     source = quickshellOverview;
     recursive = true;
   };
 
+  # Конфигурация сетки и внешнего вида Quickshell
   home.file.".config/quickshell/overview/config.json".text = builtins.toJSON {
     appearance = {
       colorSource = "matugen";
@@ -48,33 +53,38 @@ in
     };
   };
 
-  # Flatpak desktop integration
+  # =========================================================================
+  # 2. Интеграция Flatpak в пользовательские каталоги данных XDG
+  # =========================================================================
+
   xdg.systemDirs.data = [
     "/var/lib/flatpak/exports/share"
     "/home/alex/.local/share/flatpak/exports/share"
   ];
 
-  # mimeApps
+  # =========================================================================
+  # 3. Ассоциации типов файлов (MIME) по умолчанию
+  # =========================================================================
+
   xdg.mimeApps.enable = true;
   xdg.configFile."mimeapps.list".force = true;
 
   xdg.mimeApps.defaultApplications = {
-
-    # Images
+    # Изображения
     "image/jpeg" = [ "imv.desktop" ];
     "image/png"  = [ "imv.desktop" ];
     "image/gif"  = [ "firefox.desktop" ];
     "image/webp" = [ "imv.desktop" ];
     "image/heif" = [ "imv.desktop" ];
 
-    # Text / Code
+    # Текст и исходный код
     "text/plain" = [ "code.desktop" ];
     "text/css" = [ "code.desktop" ];
     "application/x-shellscript" = [ "code.desktop" ];
     "application/x-zerosize" = [ "code.desktop" ];
     "text/html" = [ "firefox.desktop" ];
 
-    # Browser handlers
+    # Браузер и протоколы ссылок
     "x-scheme-handler/http"  = [ "firefox.desktop" ];
     "x-scheme-handler/https" = [ "firefox.desktop" ];
     "x-scheme-handler/ktalk" = [ "ktalk.desktop" ];
@@ -85,49 +95,34 @@ in
     "application/vnd.adobe.pdf" = [ "firefox.desktop" ];
     "text/pdf" = [ "firefox.desktop" ];
 
-    # ---- Microsoft Word ----
-    "application/msword" =
-      [ "msword.desktop" ];
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document" =
-      [ "msword.desktop" ];
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.template" =
-      [ "msword.desktop" ];
-    "application/vnd.ms-word.document.macroEnabled.12" =
-      [ "msword.desktop" ];
-    "application/rtf" =
-      [ "msword.desktop" ];
+    # Документы Microsoft Word
+    "application/msword" = [ "msword.desktop" ];
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = [ "msword.desktop" ];
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.template" = [ "msword.desktop" ];
+    "application/vnd.ms-word.document.macroEnabled.12" = [ "msword.desktop" ];
+    "application/rtf" = [ "msword.desktop" ];
 
-    # ---- Microsoft Excel ----
-    "application/vnd.ms-excel" =
-      [ "msexcel.desktop" ];
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" =
-      [ "msexcel.desktop" ];
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.template" =
-      [ "msexcel.desktop" ];
-    "application/vnd.ms-excel.sheet.macroEnabled.12" =
-      [ "msexcel.desktop" ];
-    "text/csv" =
-      [ "msexcel.desktop" ];
+    # Таблицы Microsoft Excel
+    "application/vnd.ms-excel" = [ "msexcel.desktop" ];
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" = [ "msexcel.desktop" ];
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.template" = [ "msexcel.desktop" ];
+    "application/vnd.ms-excel.sheet.macroEnabled.12" = [ "msexcel.desktop" ];
+    "text/csv" = [ "msexcel.desktop" ];
 
-    # ---- Microsoft PowerPoint ----
-    "application/vnd.ms-powerpoint" =
-      [ "mspowerpoint.desktop" ];
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation" =
-      [ "mspowerpoint.desktop" ];
-    "application/vnd.openxmlformats-officedocument.presentationml.template" =
-      [ "mspowerpoint.desktop" ];
-    "application/vnd.openxmlformats-officedocument.presentationml.slideshow" =
-      [ "mspowerpoint.desktop" ];
-    "application/vnd.ms-powerpoint.presentation.macroEnabled.12" =
-      [ "mspowerpoint.desktop" ];
+    # Презентации Microsoft PowerPoint
+    "application/vnd.ms-powerpoint" = [ "mspowerpoint.desktop" ];
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation" = [ "mspowerpoint.desktop" ];
+    "application/vnd.openxmlformats-officedocument.presentationml.template" = [ "mspowerpoint.desktop" ];
+    "application/vnd.openxmlformats-officedocument.presentationml.slideshow" = [ "mspowerpoint.desktop" ];
+    "application/vnd.ms-powerpoint.presentation.macroEnabled.12" = [ "mspowerpoint.desktop" ];
 
-    # Audio
+    # Аудиофайлы
     "audio/mpeg" = [ "org.gnome.Decibels.desktop" ];
 
-    # File manager
+    # Файловый менеджер
     "inode/directory" = [ "org.gnome.Nautilus.desktop" ];
 
-    # Video
+    # Видеофайлы
     "video/mp4" = [ "mpv.desktop" ];
     "video/x-matroska" = [ "mpv.desktop" ];
     "video/webm" = [ "mpv.desktop" ];
@@ -139,6 +134,7 @@ in
     "video/mpeg" = [ "mpv.desktop" ];
   };
 
+  # Кастомный ярлык Steam с масштабированием под HiDPI экраны
   xdg.desktopEntries.steam = {
     name = "Steam";
     exec = "env STEAM_FORCE_DESKTOPUI_SCALING=1.5 GDK_SCALE=2 GDK_DPI_SCALE=0.75 steam -forcedesktopscaling 1.5 %U";
@@ -149,25 +145,32 @@ in
     mimeType = [ "x-scheme-handler/steam" "x-scheme-handler/steamlink" ];
   };
 
-  # Firefox with pywalfox
+  # =========================================================================
+  # 4. Браузеры и переменные сессии
+  # =========================================================================
+
+  # Браузер Firefox с интеграцией темы Pywalfox
   programs.firefox = {
     enable = true;
     nativeMessagingHosts = [ pkgs.pywalfox-native ];
     languagePacks= [ "ru" ];
   };
 
-  # Chromium 
+  # Браузер Chromium
   programs.chromium.enable = true;
 
-  # Force browser fallback to Firefox for tools that ignore mimeapps
+  # Переменные сессии пользователя
   home.sessionVariables = {
     BROWSER = "firefox";
-    EDITOR = "micro";
+    EDITOR = "code";
     VISUAL = "code";
     JAVA_HOME = "${pkgs.jdk21}/lib/openjdk";
   };
-  
-  # Fish shell configuration
+
+  # =========================================================================
+  # 5. Командная оболочка Fish и приглашение Starship
+  # =========================================================================
+
   programs.fish = {
     enable = true;
     interactiveShellInit = ''
@@ -175,6 +178,7 @@ in
       set -U fish_greeting ""
     '';
     functions = {
+      # Применение сгенерированной Matugen палитры ко всем запущенным окнам Kitty
       kitty-theme = ''
           kitty @ --to unix:/tmp/kitty set-colors /home/alex/.config/kitty/themes/Matugen.conf
           for socket in /tmp/kitty-*
@@ -184,6 +188,7 @@ in
       '';
     };
     shellAliases = {
+      # NixOS команды
       nrs = "sudo nixos-rebuild switch --flake /home/alex/hyprland-dotfiles/NixOS#nixos";
       nrb = "sudo nixos-rebuild boot --flake /home/alex/hyprland-dotfiles/NixOS#nixos";
       nfu = "nix flake update --flake /home/alex/hyprland-dotfiles/NixOS";
@@ -192,25 +197,34 @@ in
       nfe = "vim /home/alex/hyprland-dotfiles/NixOS/flake.nix";
       try = "nix-shell -p";
       ncg = "sudo nix-collect-garbage -d";
+
+      # Утилиты и терминал
       neo = "neo --colormode=32 -C /home/alex/.config/neo/colors-matugen.neo";
       ls = "eza -la";
-      dcuw = "docker compose -f /home/alex/.config/windows-docker/compose.yaml up -d";
-      dcdw = "docker compose -f /home/alex/.config/windows-docker/compose.yaml down";
       dnd = "dragon-drop -x -A";
       g = "lazygit";
       d = "lazydocker";
+
+      # Docker
+      dcuw = "docker compose -f /home/alex/.config/windows-docker/compose.yaml up -d";
+      dcdw = "docker compose -f /home/alex/.config/windows-docker/compose.yaml down";
+
+      # Загрузка аудио/видео через yt-dlp
       dwa = "yt-dlp -x --audio-format mp3 --cookies-from-browser firefox -N 50";
       dla = "yt-dlp -x --audio-format mp3 --enable-file-urls";
     };
   };
-  
-  # Starship prompt
+
+  # Информативная строка приглашения Starship
   programs.starship = {
     enable = true;
     enableFishIntegration = true;
   };
 
-  # Git configuration
+  # =========================================================================
+  # 6. Git, терминал Kitty и медиаплеер
+  # =========================================================================
+
   programs.git = {
     enable = true;
     settings = {
@@ -221,18 +235,18 @@ in
     };
   };
 
-  # SwayOSD service
+  # Экранный регулятор громкости и яркости SwayOSD
   services.swayosd.enable = true;
 
-  # EasyEffects audio processing service
+  # Эквалайзер и обработка звука EasyEffects
   services.easyeffects.enable = true;
 
-  # Video Player
+  # Видеоплеер MPV
   programs.mpv = {
     enable = true;
   };
-  
-  # Kitty Terminal configuration
+
+  # Эмулятор терминала Kitty
   programs.kitty = {
     enable = true;
     package = pkgs.kitty;
@@ -260,6 +274,8 @@ in
       package = pkgs.nerd-fonts.fira-code;
     };
   };
+
+  # Меню запуска Rofi с плагином калькулятора
   programs.rofi = {
     enable = true;
     plugins = [ pkgs.rofi-calc ];
@@ -269,70 +285,85 @@ in
 
   programs.home-manager.enable = true;
 
+  # Пользовательские скрипты из misc/bin в ~/.local/bin
   home.file.".local/bin" = {
     source = ../misc/bin;
     recursive = true;
   };
 
-  # User-specific packages
+  # =========================================================================
+  # 7. Пользовательские пакеты Home Manager
+  # =========================================================================
+
   home.packages = with pkgs; [
+    # Оформление и темы
     adw-gtk3
+    nwg-look
+    pywalfox-native
+    dconf-editor
+    pkgs-unstable.qt6Packages.qt6ct
+    qt6.qtwayland
+
+    # Терминальные утилиты и заставки
     ani-cli
     asciiquarium-transparent
-    brightnessctl
-    cava
     cbonsai
-    cliphist
+    cava
     clock-rs
-    dconf-editor
-    decibels
+    nitch
+    unimatrix
     pkgs-cli.eza
+    pkgs-cli.yazi
+    git
+    jq
+    socat
+    stow
+
+    # Скриншоты, запись экрана и буфер обмена
+    cliphist
+    wl-clip-persist
+    wl-clipboard
+    grim
+    slurp
+    hyprpicker
+    hyprshot
+    wf-recorder
+    tesseract
+
+    # Управление Hyprland и рабочим столом
+    brightnessctl
+    hypridle
+    hyprlock
+    hyprpolkitagent
+    hyprsunset
+    awww
+    pamixer
+    pavucontrol
+    quickshell
+    waybar
+    swaynotificationcenter
+    zenity
+    rofimoji
+
+    # Документы и медиа
+    decibels
     exiftool
     file-roller
     gimp
-    git
     gnome-clocks
-    grim
     gthumb
-    hypridle
-    hyprlock
-    hyprpicker
-    hyprpolkitagent
-    hyprshot
-    hyprsunset
     imv
-    jq
     libreoffice
     localsend
     mediainfo
     nautilus
-    nitch
-    nwg-look
     obsidian
-    pamixer
-    pavucontrol
+    telegram-desktop
+    vscode
+
+    # Python окружение
     python3
     python3Packages.pip
     python3Packages.virtualenv
-    pywalfox-native
-    quickshell
-    qt6.qtwayland
-    rofimoji
-    slurp
-    socat
-    stow
-    swaynotificationcenter
-    awww
-    telegram-desktop
-    tesseract
-    unimatrix
-    pkgs-unstable.qt6Packages.qt6ct
-    wf-recorder
-    vscode
-    waybar
-    wl-clip-persist
-    wl-clipboard
-    pkgs-cli.yazi
-    zenity
   ];
 }
