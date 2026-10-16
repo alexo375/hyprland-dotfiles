@@ -1,31 +1,33 @@
 #!/usr/bin/env bash
 
-# Settings (synchronized with brightness_control.sh)
-LIMIT_MAX_PC=50
-IDLE_FACTOR=10 # 10% of the working range
+# Скрипт автоматического затемнения экрана при бездействии (dim)
+# и восстановления прежней яркости при активности (restore).
+# Вызывается демоном hypridle.
 
-# File to store the brightness before dimming
+# Настройки диапазона (синхронизированы с brightness_control.sh)
+LIMIT_MAX_PC=50 # Рабочий максимум 50% от аппаратного предела
+IDLE_FACTOR=10  # 10% от рабочей яркости во время простоя (глубокое затемнение)
+
+# Временный файл для сохранения уровня яркости перед затемнением
 BRIGHTNESS_FILE="/tmp/hypr_brightness_backup"
 
-# Get current brightness
+# Функция получения текущей аппаратной яркости
 get_brightness() {
     brightnessctl get
 }
 
 case "$1" in
     dim)
-        # Only save if we haven't already
+        # Сохраняем текущую яркость только если она ещё не была сохранена
         if [ ! -f "$BRIGHTNESS_FILE" ]; then
             CURRENT_RAW=$(get_brightness)
             MAX_RAW=$(brightnessctl m)
             
-            # Calculate working max (your "100%")
+            # Расчет рабочего максимума и целевого уровня затемнения при простое
             WORKING_MAX=$(( MAX_RAW * LIMIT_MAX_PC / 100 ))
-            
-            # Calculate idle target (5% of working max)
             IDLE_RAW=$(( WORKING_MAX * IDLE_FACTOR / 100 ))
 
-            # Only dim if current brightness is above the idle threshold
+            # Понижаем яркость только если текущая яркость выше уровня простоя
             if [ "$CURRENT_RAW" -gt "$IDLE_RAW" ]; then
                 echo "$CURRENT_RAW" > "$BRIGHTNESS_FILE"
                 brightnessctl set "$IDLE_RAW"
@@ -33,6 +35,7 @@ case "$1" in
         fi
         ;;
     restore)
+        # Восстановление сохраненного уровня яркости при возобновлении активности
         if [ -f "$BRIGHTNESS_FILE" ]; then
             SAVED_BRIGHTNESS=$(cat "$BRIGHTNESS_FILE")
             brightnessctl set "$SAVED_BRIGHTNESS"
@@ -40,7 +43,7 @@ case "$1" in
         fi
         ;;
     *)
-        echo "Usage: $0 {dim|restore}"
+        echo "Использование: $0 {dim|restore}"
         exit 1
         ;;
 esac

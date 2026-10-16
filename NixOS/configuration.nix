@@ -1,6 +1,9 @@
-{ config, pkgs, inputs, pkgs-unstable, system, lib, ... }:
+{ config, pkgs, inputs, pkgs-unstable, pkgs-vpn, pkgs-agents, pkgs-cli, lib, ... }:
 
 let
+  desktopUser = builtins.head (builtins.attrNames config.home-manager.users);
+
+  # Кастомная тема SDDM Astronaut с фоном black_hole
   sddmAstronautHyprlandKathTheme = pkgs.stdenvNoCC.mkDerivation {
     pname = "sddm-astronaut-theme-hyprland-kath";
     version = "1";
@@ -12,96 +15,145 @@ let
       mv "$out/share/sddm/themes/sddm-astronaut-theme" "$out/share/sddm/themes/sddm-astronaut-theme-hyprland-kath"
       chmod -R u+w "$out/share/sddm/themes/sddm-astronaut-theme-hyprland-kath"
       substituteInPlace "$out/share/sddm/themes/sddm-astronaut-theme-hyprland-kath/metadata.desktop" \
-        --replace "ConfigFile=Themes/astronaut.conf" "ConfigFile=Themes/hyprland_kath.conf"
+        --replace "ConfigFile=Themes/astronaut.conf" "ConfigFile=Themes/black_hole.conf"
     '';
   };
 in
 {
-
   imports = [
     ./hardware-configuration.nix
+    ./modules/power.nix # Управление питанием, профили энергопотребления и сон
   ];
 
-  # Bootloader
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.systemd-boot.configurationLimit = 5;
-  boot.loader.timeout = 0;
-  boot.loader.efi.canTouchEfiVariables = true;
+  # =========================================================================
+  # 1. Загрузчик и ядро Linux
+  # =========================================================================
 
-  # Use latest kernel
-  boot.kernelPackages = pkgs.linuxPackages;
-
-  # Time Settings
-  time.hardwareClockInLocalTime = false;
-
-  # Boot customization
-  boot.plymouth = {
-    enable = true;
-    themePackages = [ pkgs.adi1090x-plymouth-themes ];
-    theme = "lone";
-  };
-
-  boot.kernelParams = [ "quiet" "splash" "boot.shell_on_fail" "loglevel=3" "rd.systemd.show_status=false" "rd.udev.log_level=0" "udev.log_priority=0" "resume=UUID=c0428711-04a3-4adf-998d-d88af1d26e71" ];
-  boot.resumeDevice = "/dev/disk/by-uuid/c0428711-04a3-4adf-998d-d88af1d26e71";
-  boot.consoleLogLevel = 0;
-  boot.initrd.verbose = false;
-  boot.initrd.kernelModules = [ "amdgpu" ];
-
-  # Networking
-  networking.hostName = "nix-btw";
-  networking.networkmanager.enable = true;
-  networking.networkmanager.wifi.powersave = false;
-  networking.firewall.enable = true;
-  networking.firewall.trustedInterfaces = [ "docker0" "winapps0" ];
-
-  # Hibernation when closing the laptop lid
-  services.logind.settings.Login = {
-    HandleLidSwitch = "hibernate";
-    HandleLidSwitchExternalPower = "hibernate";
-  };
-
-  # Power profiles
-  services.tlp = {
-    enable = true;
-    settings = {
-      CPU_SCALING_GOVERNOR_ON_AC = "performance";
-      CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
-
-      CPU_ENERGY_PERF_POLICY_ON_AC = "balance_performance";
-      CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-
-      CPU_BOOST_ON_AC = 1;
-      CPU_BOOST_ON_BAT = 0;
-
-      CPU_MAX_PERF_ON_AC = 100;
-      CPU_MAX_PERF_ON_BAT = 70;
-
-      RUNTIME_PM_ON_AC = "on";
-      RUNTIME_PM_ON_BAT = "auto";
+  boot.loader = {
+    efi.canTouchEfiVariables = true;
+    efi.efiSysMountPoint = "/boot/efi";
+    timeout = 5;
+    systemd-boot = {
+      enable = true;
+      configurationLimit = 5; # Хранить не более 5 предыдущих поколений системы
+      graceful = true;
+      extraInstallCommands = ''
+        bootctl set-timeout 5
+      '';
     };
   };
 
-  # Throne Settings
-  security.wrappers.Throne = {
-    source = "${pkgs-unstable.throne}/bin/Throne";
-    owner = "root";
-    group = "root";
-    capabilities = "cap_net_admin+ep";
+  boot.kernelPackages = pkgs.linuxPackages;
+
+  boot.initrd.availableKernelModules = [
+    "xhci_pci"
+    "thunderbolt"
+    "nvme"
+    "usb_storage"
+    "sd_mod"
+  ];
+  boot.initrd.kernelModules = [ ];
+
+  boot.kernelModules = [
+    "kvm-intel"
+    "uinput"
+    "xpad"
+  ];
+
+  # Блэклист термодрайверов Intel DTT для ноутбука Huawei MateBook 14s (2022).
+  # Исправляет постоянный гул вентиляторов (5400+ RPM), возвращая управление кулерами тихой логике BIOS.
+  boot.blacklistedKernelModules = [
+    "int3400_thermal"
+    "int3403_thermal"
+    "int340x_thermal_zone"
+    "processor_thermal_device"
+    "processor_thermal_device_pci"
+    "processor_thermal_soc_slider"
+  ];
+
+  boot.extraModulePackages = [ ];
+  boot.resumeDevice = "/dev/disk/by-uuid/c95c8d22-0de2-4e0d-a8f4-d0951c736c83";
+
+  # Скрытие логов ядра и красивый экран загрузки Plymouth
+  boot.plymouth = {
+    enable = true;
+    theme = "bgrt";
   };
 
-  # RPCS3 memory lock fix
-  security.pam.loginLimits = [
-    { domain = "@users"; type = "soft"; item = "memlock"; value = "unlimited"; }
-    { domain = "@users"; type = "hard"; item = "memlock"; value = "unlimited"; }
+  boot.kernelParams = [
+    "quiet"
+    "splash"
+    "boot.shell_on_fail"
+    "loglevel=3"
+    "rd.systemd.show_status=false"
+    "rd.udev.log_level=0"
+    "udev.log_priority=0"
   ];
-  
-  # KDE Connect Configuration
-  programs.kdeconnect.package = pkgs.kdePackages.kdeconnect-kde;
-  programs.kdeconnect.enable = true;
+  boot.consoleLogLevel = 0;
+  boot.initrd.verbose = false;
 
-  # Localization
+  # =========================================================================
+  # 2. Сеть, файрвол и VPN
+  # =========================================================================
+
+  networking.networkmanager.enable = true;
+  networking.networkmanager.wifi.powersave = false;
+  networking.firewall.enable = true;
+  networking.firewall.trustedInterfaces = [ "docker0" ];
+
+  # Порты для передачи файлов через LocalSend
+  networking.firewall.allowedTCPPorts = [ 53317 ];
+  networking.firewall.allowedUDPPorts = [ 53317 ];
+
+  services.resolved.enable = true;
+  services.netbird.enable = true;
+
+  # Фоновый сервис AmneziaVPN
+  systemd.services.amnezia-vpn = {
+    description = "Фоновый сервис AmneziaVPN";
+    after = [ "network.target" "network-online.target" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs-vpn.amnezia-vpn}/bin/AmneziaVPN-service";
+      Restart = "always";
+      RestartSec = 5;
+      User = "root";
+      Group = "root";
+    };
+  };
+
+  # Права сетевого администратора для клиента Throne VPN
+  security.wrappers.Throne = {
+    source = "${pkgs-vpn.throne}/bin/Throne";
+    owner = "root";
+    group = "root";
+    capabilities = "cap_net_admin,cap_net_bind_service+ep";
+  };
+
+  # Разрешение Throne изменять маршруты DNS через systemd-resolved без постоянных парольных окон Polkit
+  security.polkit.extraConfig = ''
+    polkit.addRule(function(action, subject) {
+      if (
+        subject.user == "${desktopUser}" &&
+        action.id.indexOf("org.freedesktop.resolve1.") === 0
+      ) {
+        return polkit.Result.YES;
+      }
+    });
+  '';
+
+  # =========================================================================
+  # 3. Локализация и учетные записи
+  # =========================================================================
+
   time.timeZone = "Europe/Moscow";
-  i18n.defaultLocale = "ru_RU.UTF-8";
+  time.hardwareClockInLocalTime = false;
+  services.timesyncd.enable = true;
+
+  i18n.defaultLocale = "en_US.UTF-8";
   i18n.extraLocaleSettings = {
     LC_ADDRESS = "ru_RU.UTF-8";
     LC_IDENTIFICATION = "ru_RU.UTF-8";
@@ -114,118 +166,117 @@ in
     LC_TIME = "ru_RU.UTF-8";
   };
 
-  # Keyboard
   services.xserver.xkb = {
     layout = "us,ru";
     variant = "";
   };
   console.keyMap = "us";
 
-  # User account
-  users.users.landilf = {
+  # Основной пользователь системы
+  users.users.${desktopUser} = {
     isNormalUser = true;
-    description = "Landilf";
+    description = "Alexander";
     extraGroups = [ "networkmanager" "wheel" "docker" "video" "input" "kvm" "adbusers" ];
     shell = pkgs.fish;
   };
 
-  # SwayOSD udev rules
-  services.udev.packages = [ pkgs.swayosd ];
-
-  # Home Manager
+  # Настройки интеграции Home Manager
   home-manager.useUserPackages = true;
   home-manager.useGlobalPkgs = true;
   home-manager.backupFileExtension = "backup";
 
-  # System-wide settings
+  # =========================================================================
+  # 4. Совместимость с бинарниками и подкачка
+  # =========================================================================
+
+  # Разрешение несвободных (проприетарных) пакетов
   nixpkgs.config.allowUnfree = true;
-  zramSwap.enable = true;
 
-  # Desktop Environment
-  programs.hyprland.enable = true;
-  programs.dconf.enable = true;
-  
-  # Shell (required for user shell)
-  programs.fish.enable = true;
-
-  # SSH configuration
-  programs.ssh.startAgent = true;
-
-  # Java configuration
-  programs.java = {
+  # nix-ld: эмуляция стандартных путей к библиотекам для запуска сторонних ELF-бинарников
+  programs.nix-ld = {
     enable = true;
-    package = pkgs.jdk21;
-  };
-
-  # Docker configuration
-  virtualisation.docker = {
-    enable = true;
-    daemon.settings = {
-      "userland-proxy" = true;
-      "iptables" = true;
-    };
-  };
-  
-  # Gaming
-  programs.steam = {
-    enable = true;
-    gamescopeSession.enable = false;
-    remotePlay.openFirewall = true;
-    dedicatedServer.openFirewall = true;
-  };
-  programs.gamescope = {
-    enable = true;
-    package = pkgs.gamescope;
-  };
-
-  # Flatpak
-  services.flatpak.enable = false;
-
-  # Hardware
-  hardware.bluetooth.enable = true;
-  hardware.cpu.amd.updateMicrocode = true;
-  hardware.enableAllFirmware = true;
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-    extraPackages = with pkgs; [
-      nvidia-vaapi-driver
-      libva-vdpau-driver
-      libvdpau-va-gl
+    libraries = with pkgs; [
+      stdenv.cc.cc.lib # libstdc++.so, libgcc_s.so
+      zlib
+      glibc
+      openssl
+      icu
+      libffi
+      readline
+      sqlite
+      libGL
+      libx11
+      libxml2
+      util-linux
     ];
   };
-  hardware.opentabletdriver = {
-    enable = false;
+
+  # Сжатие оперативной памяти zram для плавности работы
+  zramSwap.enable = true;
+
+  # Автоматическое добавление ~/.local/bin в $PATH
+  environment.localBinInPath = true;
+
+  # =========================================================================
+  # 5. Графическое окружение (Hyprland, SDDM, XDG Portals)
+  # =========================================================================
+
+  # Оконный менеджер Hyprland с интеграцией UWSM
+  programs.hyprland = {
+    enable = true;
+    package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
+    withUWSM = true;
   };
 
-  # NVIDIA + AMD Prime
-  services.xserver.videoDrivers = [ "amdgpu" "nvidia" ];
-  hardware.nvidia = {
-    modesetting.enable = true;
-    powerManagement.enable = true;
-    powerManagement.finegrained = true;
-    open = false;
-    nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.production;
+  programs.dconf.enable = true;
+  programs.fish.enable = true;
+  qt.enable = true;
+  qt.platformTheme = "qt5ct";
 
-    prime = {
-      offload = {
-        enable = true;
-        enableOffloadCmd = true;
+  # Экранный менеджер входа SDDM
+  services.displayManager.sddm = {
+    enable = true;
+    theme = "sddm-astronaut-theme-hyprland-kath";
+    wayland.enable = true;
+    settings = {
+      General = {
+        GreeterEnvironment = "QT_SCALE_FACTOR=1.2,QT_SCREEN_SCALE_FACTORS=1.2,QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough";
       };
-      nvidiaBusId = "PCI:1:0:0";
-      amdgpuBusId = "PCI:54:0:0";
+    };
+    extraPackages = with pkgs; [
+      kdePackages.qtmultimedia
+      kdePackages.qtsvg
+      kdePackages.qtvirtualkeyboard
+      kdePackages.qtbase
+    ];
+  };
+
+  # XDG Desktop Portals (для файловых диалогов, шаринга экрана и открытия ссылок)
+  xdg.portal = {
+    enable = true;
+    xdgOpenUsePortal = false;
+    extraPortals = with pkgs; [
+      xdg-desktop-portal-gtk
+    ];
+    config = {
+      common = {
+        default = [ "hyprland" "gtk" ];
+      };
+      hyprland = {
+        default = [ "hyprland" "gtk" ];
+      };
     };
   };
 
-  # OpenRGB
-  services.hardware.openrgb = {
-    enable = true;
-    motherboard = "amd";
-  };
-  systemd.services.openrgb.wantedBy = lib.mkForce [];
+  services.gvfs.enable = true;
 
-  # Audio
+  # =========================================================================
+  # 6. Звук и оборудование
+  # =========================================================================
+
+  # Звуковой сервер PipeWire с поддержкой низкой задержки через RTKit
+  services.pulseaudio.enable = false;
+  security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
     wireplumber.enable = true;
@@ -234,130 +285,250 @@ in
     pulse.enable = true;
   };
 
-  # Display Manager
-  services.displayManager.sddm = {
-    enable = true;
-    theme = "sddm-astronaut-theme-hyprland-kath";
-    wayland.enable = true;
-    extraPackages = with pkgs; [ 
-      kdePackages.qtmultimedia
-      kdePackages.qtsvg
-      kdePackages.qtvirtualkeyboard
-      kdePackages.qtbase
-    ]; 
-  };
+  # Bluetooth и геймпады
+  hardware.bluetooth.enable = true;
+  hardware.enableRedistributableFirmware = true;
+  hardware.xpadneo.enable = true;
+  hardware.opentabletdriver.enable = false;
 
-  # XDG Portal
-  xdg.portal = {
+  # Аппаратное ускорение графики Intel (VA-API / QuickSync)
+  hardware.graphics = {
     enable = true;
-    extraPortals = with pkgs; [
-      xdg-desktop-portal-hyprland
-      xdg-desktop-portal-gtk
+    enable32Bit = true;
+    extraPackages = with pkgs; [
+      intel-vaapi-driver
+      intel-media-driver
     ];
   };
-  
-  # GVFS for trash support in file managers
-  services.gvfs.enable = true;
 
-  # System packages (only system-level stuff)
-  environment.systemPackages = 
-    (with pkgs-unstable; [
-      codex
-      easyeffects
+  # =========================================================================
+  # 7. Виртуализация, сервисы и игры
+  # =========================================================================
+
+  # Агент SSH
+  programs.ssh.startAgent = true;
+
+  # Среда исполнения Java 21
+  programs.java = {
+    enable = true;
+    package = pkgs.jdk21;
+  };
+
+  # Контейнеризация Docker
+  virtualisation.docker = {
+    enable = true;
+    daemon.settings = {
+      "userland-proxy" = true;
+      "iptables" = true;
+    };
+  };
+
+  # Игровые платформы Steam и Gamescope
+  programs.steam = {
+    enable = true;
+    gamescopeSession.enable = false;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
+  };
+
+  programs.gamescope = {
+    enable = true;
+    package = pkgs.gamescope;
+  };
+
+  # Служба печати CUPS
+  services.printing.enable = true;
+
+  # Правила Udev для SwayOSD и устройств
+  services.udev.packages = with pkgs; [
+    game-devices-udev-rules
+    steam-devices-udev-rules
+    swayosd
+  ];
+
+  # =========================================================================
+  # 8. Системные пакеты
+  # =========================================================================
+
+  environment.systemPackages =
+    # Пакеты VPN
+    (with pkgs-vpn; [
+      amnezia-vpn
+      amneziawg-tools
       throne
+    ])
+    # Инструменты ИИ и агенты (фиксированные версии)
+    ++ (with pkgs-agents; [
+      codex
+      antigravity-cli
+    ])
+    # Нестабильные пакеты
+    ++ (with pkgs-unstable; [
       yandex-music
     ])
+    # Кастомные деривации
+    ++ [ (pkgs.callPackage ./pkgs/ktalk.nix { }) ]
+    # Основные утилиты и окружение
     ++ (with pkgs; [
+      # Утилиты темы и интерфейса
       inputs.matugen.packages.${config.nixpkgs.hostPlatform.system}.default
-      inputs.prism-cracked.packages.${config.nixpkgs.hostPlatform.system}.prismlauncher
       alsa-plugins
-      bluez
-      bubblewrap
-      docker
-      docker-compose
-      drawio
-      flameshot
       font-awesome
-      freerdp
-      fzf
-      gnome-themes-extra
-      kdePackages.kstatusnotifieritem
-      kdePackages.qt6ct
-      killall
-      lazydocker
-      lazygit
       libnotify
       libqalculate
-      libsForQt5.qt5ct
-      mangohud
       mission-center
-      neo
-      nix-search-tv
-      openrgb-with-all-plugins
-      p7zip
-      powertop
-      ppsspp-sdl-wayland
-      protonplus
-      rpcs3
+      gnome-themes-extra
       sddm-astronaut
       sddmAstronautHyprlandKathTheme
-      scanmem
-      tenacity
+      bluetui
+      pulsemixer
+      playerctl
+
+      # Разработка и компиляция
+      gcc
+      gdb
+      gnumake
+      cmake
+      ninja
+      maven
+      stdenv
+      ruff
+      tex-fmt
+      texliveFull
+      python3
+      python3Packages.pip
+      python3Packages.tkinter
+      python3Packages.virtualenv
+      uv
+
+      # Терминальные CLI-утилиты
+      age
+      bat
+      bluez
+      btop
+      bubblewrap
+      cloc
+      curl
+      duf
+      ffmpeg
+      fzf
+      htop
+      jq
+      pkgs-cli.lazydocker
+      pkgs-cli.lazygit
+      micro
+      neo
+      nixfmt
+      ntfs3g
+      p7zip
+      powertop
+      rar
+      tldr
+      tmux
+      tree
+      unzip
+      unrar
       vim
-      winetricks
-      xrandr
+      wget
+      xclip
+      xsel
+      zip
+      yt-dlp
+
+      # GUI-приложения и графика
+      aseprite
+      discord
+      docker
+      docker-compose
+      dragon-drop
+      freerdp
+      gimp3
+      kdePackages.qt6ct
+      krita
+      libsForQt5.qt5ct
+      netbird-ui
+      pinta
+      postman
+      qgis
+      transmission_4-gtk
+      vscode
+      vscodium-fhs
+
+      # Игры и эмуляция
+      android-tools
+      evtest
+      mangohud
+      protonplus
+      r2modman
+      scanmem
+      scrcpy
+      steam
+
+      # Мультимедиа и загрузчики
+      tenacity
+      (instaloader.overrideAttrs (old: {
+        propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [ python3Packages.browser-cookie3 ];
+      }))
     ]);
 
-  # Codex CLI expects a system bubblewrap at /usr/bin/bwrap.
-  systemd.tmpfiles.rules = [
-    "L+ /usr/bin/bwrap - - - - ${pkgs.bubblewrap}/bin/bwrap"
-  ];
+  # =========================================================================
+  # 9. Шрифты
+  # =========================================================================
 
-  # Fonts
-  fonts.packages = with pkgs; [ 
-    noto-fonts
-    adwaita-fonts
-    nerd-fonts.jetbrains-mono 
-    noto-fonts-cjk-sans
-  ];
-  
-  # Udev Settings
+  fonts.packages =
+    (builtins.filter lib.attrsets.isDerivation (builtins.attrValues pkgs.nerd-fonts))
+    ++ [
+      pkgs.adwaita-fonts
+      pkgs.noto-fonts
+      pkgs.noto-fonts-cjk-sans
+      pkgs.noto-fonts-color-emoji
+    ];
 
-  # Teevolution Terra
- services.udev.extraRules = ''
-    # Teevolution Terra
+  # =========================================================================
+  # 10. Правила Udev для оборудования
+  # =========================================================================
+
+  services.udev.extraRules = ''
+    # Доступ к uinput для эмуляции контроллеров и оверлеев в Steam
+    KERNEL=="uinput", MODE="0660", GROUP="input", OPTIONS+="static_node=uinput", TAG+="uaccess"
+
+    # Клавиатура Teevolution Terra
     SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3554", ATTRS{idProduct}=="f523", MODE="0666", TAG+="uaccess"
-    SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3554", ATTRS{idProduct}=="f522", MODE="0666", TAG+="uaccess" 
+    SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3554", ATTRS{idProduct}=="f522", MODE="0666", TAG+="uaccess"
 
-    # Wooting One Legacy
+    # Клавиатура Wooting One Legacy
     SUBSYSTEM=="hidraw", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="ff01", MODE="0666", TAG+="uaccess"
     SUBSYSTEM=="usb", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="ff01", MODE="0666", TAG+="uaccess"
 
-    # Wooting One update mode
+    # Режим обновления прошивки Wooting One
     SUBSYSTEM=="hidraw", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2402", MODE="0666", TAG+="uaccess"
 
-    # Wooting Two Legacy
+    # Клавиатура Wooting Two Legacy
     SUBSYSTEM=="hidraw", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="ff02", MODE="0666", TAG+="uaccess"
     SUBSYSTEM=="usb", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="ff02", MODE="0666", TAG+="uaccess"
 
-    # Wooting Two update mode
+    # Режим обновления прошивки Wooting Two
     SUBSYSTEM=="hidraw", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="2403", MODE="0666", TAG+="uaccess"
 
-    # Generic Wooting devices
+    # Универсальные правила для устройств Wooting
     SUBSYSTEM=="hidraw", ATTRS{idVendor}=="31e3", MODE="0666", TAG+="uaccess"
     SUBSYSTEM=="usb", ATTRS{idVendor}=="31e3", MODE="0666", TAG+="uaccess"
   '';
 
-  # Nix optimization
+  # =========================================================================
+  # 11. Настройки менеджера пакетов Nix
+  # =========================================================================
+
+  # Еженедельная сборка мусора и удаление поколений старше 14 дней
   nix.gc = {
     automatic = true;
     dates = "weekly";
-    options = "--delete-older-than 7d";
+    options = "--delete-older-than 14d";
   };
 
-  # Nix settings
+  # Оптимизация хранилища (дедупликация жестких ссылок)
   nix.settings.auto-optimise-store = true;
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-  system.stateVersion = "25.11";
+  system.stateVersion = "26.05";
 }

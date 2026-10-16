@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Скрипт корректного автозапуска Waybar при старте сессии Hyprland:
+# 1. Завершает старые/зависшие процессы Waybar.
+# 2. Ожидает появления сокета Hyprland IPC (.socket2.sock).
+# 3. Запускает порталы xdg-desktop-portal для предотвращения задержки старта темы (~25 сек).
+# 4. Запускает Waybar в фоновом режиме.
+
 runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
-# Ensure we don't keep a stale Waybar from a previous session.
+# Завершение предыдущих инстансов Waybar
 pkill -x waybar 2>/dev/null || true
 pkill -x .waybar-wrapped 2>/dev/null || true
 
@@ -12,7 +18,7 @@ for _ in $(seq 1 10); do
   sleep 0.1
 done
 
-# Best-effort: wait until Hyprland's IPC socket exists (helps Hyprland modules/scripts start instantly).
+# Ожидание готовности сокета Hyprland для мгновенного подключения модулей воркспейсов
 if [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
   socket="$runtime_dir/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
   for _ in $(seq 1 10); do
@@ -21,12 +27,13 @@ if [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
   done
 fi
 
-# Avoid Waybar blocking ~25s waiting for the desktop appearance portal.
+# Прогрев порталов рабочего стола для предотвращения зависания Waybar при запросе цветовой схемы
 systemctl --user start xdg-desktop-portal.service xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service 2>/dev/null || true
 for _ in $(seq 1 20); do
-systemctl --user is-active --quiet xdg-desktop-portal.service && break
+  systemctl --user is-active --quiet xdg-desktop-portal.service && break
   sleep 0.1
 done
 
+# Запуск Waybar без блокировки родительского шелла
 waybar -l off >/dev/null 2>&1 &
 disown || true

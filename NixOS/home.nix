@@ -1,115 +1,128 @@
-{ config, pkgs, ... }:
+{ config, pkgs, pkgs-unstable, pkgs-cli, hyprland, inputs, ... }:
 
 let
-  ideaVersion = "2025.2.6.1";
-  ideaUltimatePinned = pkgs.jetbrains.idea.overrideAttrs (_old: {
-    version = ideaVersion;
-    src = pkgs.fetchurl {
-      url = "https://download.jetbrains.com/idea/ideaIU-${ideaVersion}.tar.gz";
-      hash = "sha256-TOix8nLmQn3nCYmk5BQFSGuXxO8urN3Zv70bv5EtP7I=";
-    };
-  });
-  ideaVmOptions = pkgs.writeText "idea64.vmoptions" ''
-    -javaagent:/home/landilf/ProgrammingSoftware/JetBrains/jetbra/ja-netfilter.jar=jetbrains 
-    --add-opens=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED 
-    --add-opens=java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED
+  # Пропатченный обзорщик окон Quickshell Overview
+  quickshellOverview = pkgs.runCommand "quickshell-overview-patched" { } ''
+    cp -R ${inputs.quickshell-overview}/. "$out"
+    substituteInPlace "$out/common/functions/ColorUtils.qml" \
+      --replace-fail \
+      'function applyAlpha(color, alpha) {' \
+      'function applyAlpha(color, alpha) { if (!color) return "transparent";'
+    substituteInPlace "$out/modules/overview/OverviewWindow.qml" \
+      --replace-fail \
+      'property var iconPath: Quickshell.iconPath(iconName, "image-missing")' \
+      'property var iconPath: entry?.icon ? Quickshell.iconPath(iconName) : ""'
   '';
-  ideaUltimateWrapped = ideaUltimatePinned.overrideAttrs (old: {
-    nativeBuildInputs = (old.nativeBuildInputs or []) ++ [ pkgs.makeWrapper ];
-    postFixup =
-      (old.postFixup or "")
-      + ''
-        if [ -x "$out/bin/idea-ultimate" ]; then
-          wrapProgram "$out/bin/idea-ultimate" --set IDEA_VM_OPTIONS "${ideaVmOptions}"
-        fi
-
-        if [ -x "$out/bin/idea" ]; then
-          wrapProgram "$out/bin/idea" --set IDEA_VM_OPTIONS "${ideaVmOptions}"
-        fi
-      '';
-  });
 in
 {
-
   imports = [
   ];
 
-  home.stateVersion = "25.11";
-  home.username = "landilf";
-  home.homeDirectory = "/home/landilf";
+  home.stateVersion = "26.05";
+  home.username = "alex";
+  home.homeDirectory = "/home/alex";
 
-  home.sessionVariables = {
-    ANDROID_HOME = "${config.home.homeDirectory}/ProgrammingSoftware/Android/Sdk";
-    ANDROID_SDK_ROOT = "${config.home.homeDirectory}/ProgrammingSoftware/Android/Sdk";
+  # =========================================================================
+  # 1. Quickshell Overview (экран обзора рабочих столов по Win+Tab)
+  # =========================================================================
+
+  home.file.".config/quickshell/overview" = {
+    source = quickshellOverview;
+    recursive = true;
   };
 
-  # mimeApps
+  # Конфигурация сетки и внешнего вида Quickshell
+  home.file.".config/quickshell/overview/config.json".text = builtins.toJSON {
+    appearance = {
+      colorSource = "matugen";
+      font.family = {
+        main = "JetBrains Mono Nerd Font";
+        title = "JetBrains Mono Nerd Font";
+        expressive = "JetBrains Mono Nerd Font";
+      };
+    };
+    overview = {
+      rows = 2;
+      columns = 5;
+      hideEmptyRows = true;
+      previewsEnabled = true;
+      previewMode = "live";
+      includeInactiveMonitorPreviews = true;
+      showSpecialWorkspaces = true;
+      specialWorkspaces = [ "magic" ];
+    };
+  };
+
+  # =========================================================================
+  # 2. Интеграция Flatpak в пользовательские каталоги данных XDG
+  # =========================================================================
+
+  xdg.systemDirs.data = [
+    "/var/lib/flatpak/exports/share"
+    "/home/alex/.local/share/flatpak/exports/share"
+  ];
+
+  # =========================================================================
+  # 3. Ассоциации типов файлов (MIME) по умолчанию
+  # =========================================================================
+
   xdg.mimeApps.enable = true;
+  xdg.configFile."mimeapps.list".force = true;
 
   xdg.mimeApps.defaultApplications = {
-
-    # Images
+    # Изображения
     "image/jpeg" = [ "imv.desktop" ];
     "image/png"  = [ "imv.desktop" ];
     "image/gif"  = [ "firefox.desktop" ];
-    "image/webp" = [ "org.gnome.eog.desktop" ];
+    "image/webp" = [ "imv.desktop" ];
     "image/heif" = [ "imv.desktop" ];
 
-    # Text / Code
-    "text/plain" = [ "codium.desktop" ];
-    "text/css" = [ "codium.desktop" ];
-    "application/x-shellscript" = [ "codium.desktop" ];
-    "application/x-zerosize" = [ "codium.desktop" ];
+    # Текст и исходный код
+    "text/plain" = [ "code.desktop" ];
+    "text/css" = [ "code.desktop" ];
+    "application/x-shellscript" = [ "code.desktop" ];
+    "application/x-zerosize" = [ "code.desktop" ];
     "text/html" = [ "firefox.desktop" ];
 
-    # Browser handlers
+    # Браузер и протоколы ссылок
     "x-scheme-handler/http"  = [ "firefox.desktop" ];
     "x-scheme-handler/https" = [ "firefox.desktop" ];
+    "x-scheme-handler/ktalk" = [ "ktalk.desktop" ];
     "application/pdf" = [ "firefox.desktop" ];
+    "application/x-pdf" = [ "firefox.desktop" ];
+    "application/acrobat" = [ "firefox.desktop" ];
+    "application/vnd.pdf" = [ "firefox.desktop" ];
+    "application/vnd.adobe.pdf" = [ "firefox.desktop" ];
+    "text/pdf" = [ "firefox.desktop" ];
 
-    # ---- Microsoft Word ----
-    "application/msword" =
-      [ "msword.desktop" ];
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document" =
-      [ "msword.desktop" ];
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.template" =
-      [ "msword.desktop" ];
-    "application/vnd.ms-word.document.macroEnabled.12" =
-      [ "msword.desktop" ];
-    "application/rtf" =
-      [ "msword.desktop" ];
+    # Документы Microsoft Word
+    "application/msword" = [ "msword.desktop" ];
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = [ "msword.desktop" ];
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.template" = [ "msword.desktop" ];
+    "application/vnd.ms-word.document.macroEnabled.12" = [ "msword.desktop" ];
+    "application/rtf" = [ "msword.desktop" ];
 
-    # ---- Microsoft Excel ----
-    "application/vnd.ms-excel" =
-      [ "msexcel.desktop" ];
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" =
-      [ "msexcel.desktop" ];
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.template" =
-      [ "msexcel.desktop" ];
-    "application/vnd.ms-excel.sheet.macroEnabled.12" =
-      [ "msexcel.desktop" ];
-    "text/csv" =
-      [ "msexcel.desktop" ];
+    # Таблицы Microsoft Excel
+    "application/vnd.ms-excel" = [ "msexcel.desktop" ];
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" = [ "msexcel.desktop" ];
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.template" = [ "msexcel.desktop" ];
+    "application/vnd.ms-excel.sheet.macroEnabled.12" = [ "msexcel.desktop" ];
+    "text/csv" = [ "msexcel.desktop" ];
 
-    # ---- Microsoft PowerPoint ----
-    "application/vnd.ms-powerpoint" =
-      [ "mspowerpoint.desktop" ];
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation" =
-      [ "mspowerpoint.desktop" ];
-    "application/vnd.openxmlformats-officedocument.presentationml.template" =
-      [ "mspowerpoint.desktop" ];
-    "application/vnd.openxmlformats-officedocument.presentationml.slideshow" =
-      [ "mspowerpoint.desktop" ];
-    "application/vnd.ms-powerpoint.presentation.macroEnabled.12" =
-      [ "mspowerpoint.desktop" ];
+    # Презентации Microsoft PowerPoint
+    "application/vnd.ms-powerpoint" = [ "mspowerpoint.desktop" ];
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation" = [ "mspowerpoint.desktop" ];
+    "application/vnd.openxmlformats-officedocument.presentationml.template" = [ "mspowerpoint.desktop" ];
+    "application/vnd.openxmlformats-officedocument.presentationml.slideshow" = [ "mspowerpoint.desktop" ];
+    "application/vnd.ms-powerpoint.presentation.macroEnabled.12" = [ "mspowerpoint.desktop" ];
 
-    # Audio
+    # Аудиофайлы
     "audio/mpeg" = [ "org.gnome.Decibels.desktop" ];
 
-    # File manager
+    # Файловый менеджер
     "inode/directory" = [ "org.gnome.Nautilus.desktop" ];
 
-    # Video
+    # Видеофайлы
     "video/mp4" = [ "mpv.desktop" ];
     "video/x-matroska" = [ "mpv.desktop" ];
     "video/webm" = [ "mpv.desktop" ];
@@ -121,33 +134,43 @@ in
     "video/mpeg" = [ "mpv.desktop" ];
   };
 
-  # Android Studio Emulator fix
-  xdg.desktopEntries.android-studio = {
-    name = "Android Studio (stable channel)";
-    comment = "The official Android IDE";
-    categories = [ "Development" "IDE" ];
-    # Force XWayland for Qt-based tools like the Android Emulator, and make sure
-    # Android Studio and the emulator agree on SDK/adb paths.
-    exec = "android-studio-rofi";
-    icon = "android-studio";
-    startupNotify = true;
+  # Кастомный ярлык Steam с масштабированием под HiDPI экраны
+  xdg.desktopEntries.steam = {
+    name = "Steam";
+    exec = "env STEAM_FORCE_DESKTOPUI_SCALING=1.5 GDK_SCALE=2 GDK_DPI_SCALE=0.75 steam -forcedesktopscaling 1.5 %U";
     terminal = false;
-    settings = {
-      StartupWMClass = "jetbrains-studio";
-    };
+    type = "Application";
+    icon = "steam";
+    categories = [ "Game" "Network" ];
+    mimeType = [ "x-scheme-handler/steam" "x-scheme-handler/steamlink" ];
   };
 
-  # Firefox with pywalfox
+  # =========================================================================
+  # 4. Браузеры и переменные сессии
+  # =========================================================================
+
+  # Браузер Firefox с интеграцией темы Pywalfox
   programs.firefox = {
     enable = true;
     nativeMessagingHosts = [ pkgs.pywalfox-native ];
     languagePacks= [ "ru" ];
   };
 
-  # Chromium 
+  # Браузер Chromium
   programs.chromium.enable = true;
-  
-  # Fish shell configuration
+
+  # Переменные сессии пользователя
+  home.sessionVariables = {
+    BROWSER = "firefox";
+    EDITOR = "code";
+    VISUAL = "code";
+    JAVA_HOME = "${pkgs.jdk21}/lib/openjdk";
+  };
+
+  # =========================================================================
+  # 5. Командная оболочка Fish и приглашение Starship
+  # =========================================================================
+
   programs.fish = {
     enable = true;
     interactiveShellInit = ''
@@ -155,77 +178,75 @@ in
       set -U fish_greeting ""
     '';
     functions = {
+      # Применение сгенерированной Matugen палитры ко всем запущенным окнам Kitty
       kitty-theme = ''
+          kitty @ --to unix:/tmp/kitty set-colors /home/alex/.config/kitty/themes/Matugen.conf
           for socket in /tmp/kitty-*
-            kitty @ --to unix:$socket set-colors ~/.config/kitty/themes/Matugen.conf
+            test -S "$socket"; or continue
+            kitty @ --to unix:$socket set-colors /home/alex/.config/kitty/themes/Matugen.conf
           end
       '';
     };
     shellAliases = {
-      nrs = "sudo nixos-rebuild switch --flake ~/Hyprland-Dotfiles/NixOS#nix-btw";
-      nrb = "sudo nixos-rebuild boot --flake ~/Hyprland-Dotfiles/NixOS#nix-btw";
-      nfu = "nix flake update";
-      nce = "vim ~/Hyprland-Dotfiles/NixOS/configuration.nix";
-      nhe = "vim ~/Hyprland-Dotfiles/NixOS/home.nix";
-      nfe = "vim ~/Hyprland-Dotfiles/NixOS/flake.nix";
+      # NixOS команды
+      nrs = "sudo nixos-rebuild switch --flake /home/alex/hyprland-dotfiles/NixOS#nixos";
+      nrb = "sudo nixos-rebuild boot --flake /home/alex/hyprland-dotfiles/NixOS#nixos";
+      nfu = "nix flake update --flake /home/alex/hyprland-dotfiles/NixOS";
+      nce = "vim /home/alex/hyprland-dotfiles/NixOS/configuration.nix";
+      nhe = "vim /home/alex/hyprland-dotfiles/NixOS/home.nix";
+      nfe = "vim /home/alex/hyprland-dotfiles/NixOS/flake.nix";
       try = "nix-shell -p";
       ncg = "sudo nix-collect-garbage -d";
-      cff = "reset && nitch";  
-      ns = "nix-search-tv print | fzf --preview 'nix-search-tv preview {}' --scheme history";
+
+      # Утилиты и терминал
+      neo = "neo --colormode=32 -C /home/alex/.config/neo/colors-matugen.neo";
       ls = "eza -la";
-      dcuw = "docker compose -f ~/.config/windows-docker/compose.yaml up -d";
-      dcdw = "docker compose -f ~/.config/windows-docker/compose.yaml down";
+      dnd = "dragon-drop -x -A";
+      g = "lazygit";
+      d = "lazydocker";
+
+      # Docker
+      dcuw = "docker compose -f /home/alex/.config/windows-docker/compose.yaml up -d";
+      dcdw = "docker compose -f /home/alex/.config/windows-docker/compose.yaml down";
+
+      # Загрузка аудио/видео через yt-dlp
+      dwa = "yt-dlp -x --audio-format mp3 --cookies-from-browser firefox -N 50";
+      dla = "yt-dlp -x --audio-format mp3 --enable-file-urls";
     };
   };
-  
-  # Starship prompt
+
+  # Информативная строка приглашения Starship
   programs.starship = {
     enable = true;
     enableFishIntegration = true;
   };
 
-  # Git configuration (add your details)
+  # =========================================================================
+  # 6. Git, терминал Kitty и медиаплеер
+  # =========================================================================
+
   programs.git = {
     enable = true;
     settings = {
       user = {
-        name = "Landilf";
-        email = "vladrumin4@gmail.com";
+        name = "Alexander";
+        email = "alexo375@yandex.ru";
       };
     };
   };
 
-  # SwayOSD service
+  # Экранный регулятор громкости и яркости SwayOSD
   services.swayosd.enable = true;
 
-  # KDE Connect configuration
-  services.kdeconnect = {
-    package = 
-      pkgs.kdePackages.kdeconnect-kde
-    ;
-    enable = true;
-    indicator = true;
-  };
-  
-  # OBS for screen recording
-  programs.obs-studio = {
-    enable = true;
-    plugins = with pkgs.obs-studio-plugins; [
-      obs-pipewire-audio-capture
-      obs-gstreamer
-      obs-vkcapture
-    ];
-    package = pkgs.obs-studio.override {
-      cudaSupport = true; 
-    };
-  };
+  # Эквалайзер и обработка звука EasyEffects
+  services.easyeffects.enable = true;
 
-  # Video Player
+  # Видеоплеер MPV
   programs.mpv = {
     enable = true;
   };
-  
-  # Kitty Terminal configuration
+
+  # Эмулятор терминала Kitty
   programs.kitty = {
     enable = true;
     package = pkgs.kitty;
@@ -249,10 +270,12 @@ in
     };
     font = {
       size = 14;
-      name = "JetBrains Mono Nerd Font";
-      package = pkgs.nerd-fonts.jetbrains-mono;
+      name = "FiraCode Nerd Font";
+      package = pkgs.nerd-fonts.fira-code;
     };
   };
+
+  # Меню запуска Rofi с плагином калькулятора
   programs.rofi = {
     enable = true;
     plugins = [ pkgs.rofi-calc ];
@@ -260,70 +283,87 @@ in
     configPath = ".config/rofi/.hm-config.rasi";
   };
 
-  # User-specific packages
+  programs.home-manager.enable = true;
+
+  # Пользовательские скрипты из misc/bin в ~/.local/bin
+  home.file.".local/bin" = {
+    source = ../misc/bin;
+    recursive = true;
+  };
+
+  # =========================================================================
+  # 7. Пользовательские пакеты Home Manager
+  # =========================================================================
+
   home.packages = with pkgs; [
+    # Оформление и темы
     adw-gtk3
-    android-studio
-    android-tools
-    (writeShellScriptBin "android-studio-rofi" ''
-      export QT_QPA_PLATFORM=xcb
-      export ANDROID_HOME="$HOME/ProgrammingSoftware/Android/Sdk"
-      export ANDROID_SDK_ROOT="$ANDROID_HOME"
-      export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
-      exec android-studio "$@"
-    '')
+    nwg-look
+    pywalfox-native
+    dconf-editor
+    pkgs-unstable.qt6Packages.qt6ct
+    qt6.qtwayland
+
+    # Терминальные утилиты и заставки
     ani-cli
     asciiquarium-transparent
-    blueman
-    brightnessctl
-    cava
     cbonsai
-    cliphist
-    dconf-editor
-    decibels
-    discord
-    eza
-    file-roller
-    gimp
+    cava
+    clock-rs
+    nitch
+    unimatrix
+    pkgs-cli.eza
+    pkgs-cli.yazi
     git
-    gnome-clocks
+    jq
+    socat
+    stow
+
+    # Скриншоты, запись экрана и буфер обмена
+    cliphist
+    wl-clip-persist
+    wl-clipboard
     grim
-    gthumb
-    heroic
+    slurp
+    hyprpicker
+    hyprshot
+    wf-recorder
+    tesseract
+
+    # Управление Hyprland и рабочим столом
+    brightnessctl
     hypridle
     hyprlock
-    hyprpicker
     hyprpolkitagent
-    hyprshot
     hyprsunset
-    imv
-    ideaUltimateWrapped
-    jq
-    kdePackages.kamera
-    nautilus
-    nitch
-    nwg-dock-hyprland
-    nwg-look
-    obsidian
+    awww
     pamixer
     pavucontrol
+    quickshell
+    waybar
+    swaynotificationcenter
+    zenity
+    rofimoji
+
+    # Документы и медиа
+    decibels
+    exiftool
+    file-roller
+    gimp
+    gnome-clocks
+    gthumb
+    imv
+    libreoffice
+    localsend
+    mediainfo
+    nautilus
+    obsidian
+    telegram-desktop
+    vscode
+
+    # Python окружение
     python3
     python3Packages.pip
     python3Packages.virtualenv
-    pywalfox-native
-    slurp
-    socat
-    stow
-    swaynotificationcenter
-    swww
-    telegram-desktop
-    tesseract
-    unimatrix
-    vscodium
-    waybar
-    wl-clip-persist
-    wl-clipboard
-    yazi
-    zenity
   ];
 }

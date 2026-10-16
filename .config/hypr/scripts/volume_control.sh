@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 
-# Volume settings
-STEP=4
-MAX_VOLUME=100
+# Скрипт управления громкостью динамиков и микрофона через WirePlumber (wpctl)
+# с синхронными всплывающими OSD-уведомлениями.
 
-# Handle Mic Mute
+# Настройки шага изменения громкости и верхнего предела
+STEP=4          # Шаг изменения громкости в процентах (4%)
+MAX_VOLUME=100  # Максимально допустимая громкость (100%)
+
+# Обработка переключения микрофона (mic-mute)
 if [ "$1" == "mic-mute" ]; then
     wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
     IS_MUTED=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | grep -q "MUTED" && echo "true" || echo "false")
@@ -20,13 +23,13 @@ if [ "$1" == "mic-mute" ]; then
     exit 0
 fi
 
-# Get current volume and mute status using wpctl
+# Получение текущих данных громкости и статуса заглушения (mute) динамиков через wpctl
 VOLUME_DATA=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
 CURRENT=$(echo "$VOLUME_DATA" | awk '{print $2 * 100}' | cut -d. -f1)
 IS_MUTED=$(echo "$VOLUME_DATA" | grep -q "MUTED" && echo "true" || echo "false")
 
 if [ "$1" == "up" ]; then
-    # Unmute if muted when raising volume
+    # Автоматически снимаем mute при увеличении громкости
     [ "$IS_MUTED" == "true" ] && wpctl set-mute @DEFAULT_AUDIO_SINK@ 0
     
     NEW=$((CURRENT + STEP))
@@ -42,10 +45,10 @@ elif [ "$1" == "mute" ]; then
     IS_MUTED=$(echo "$VOLUME_DATA" | grep -q "MUTED" && echo "true" || echo "false")
 fi
 
-# Final fetch for notification
+# Финальный опрос актуального значения громкости для отображения в OSD
 NEW=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print $2 * 100}' | cut -d. -f1)
 
-# Notification logic
+# Формирование и отправка всплывающего OSD-уведомления
 if [ "$IS_MUTED" == "true" ]; then
     notify-send -e -h string:x-canonical-private-synchronous:volume \
                 -u low -i audio-volume-muted-symbolic \
