@@ -205,7 +205,7 @@ in
       readline
       sqlite
       libGL
-      xorg.libX11
+      libx11
       libxml2
       util-linux
     ];
@@ -224,7 +224,7 @@ in
   # Оконный менеджер Hyprland с интеграцией UWSM
   programs.hyprland = {
     enable = true;
-    package = inputs.hyprland.packages.${pkgs.system}.hyprland;
+    package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
     withUWSM = true;
   };
 
