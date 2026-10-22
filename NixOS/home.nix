@@ -212,6 +212,9 @@ in
       # Загрузка аудио/видео через yt-dlp
       dwa = "yt-dlp -x --audio-format mp3 --cookies-from-browser firefox -N 50";
       dla = "yt-dlp -x --audio-format mp3 --enable-file-urls";
+
+      # Яндекс Музыка TUI
+      ymtui = "yandex-music-tui";
     };
   };
 
@@ -309,6 +312,7 @@ in
     asciiquarium-transparent
     cbonsai
     cava
+    playerctl
     clock-rs
     nitch
     unimatrix

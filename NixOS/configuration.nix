@@ -367,7 +367,10 @@ in
       yandex-music
     ])
     # Кастомные деривации
-    ++ [ (pkgs.callPackage ./pkgs/ktalk.nix { }) ]
+    ++ [
+      (pkgs.callPackage ./pkgs/ktalk.nix { })
+      (pkgs.callPackage ./pkgs/yandex-music-tui.nix { })
+    ]
     # Основные утилиты и окружение
     ++ (with pkgs; [
       # Утилиты темы и интерфейса
