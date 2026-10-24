@@ -110,12 +110,15 @@ hl.bind("XF86AudioMicMute",       hl.dsp.exec_cmd(home .. "/.config/hypr/scripts
 hl.bind("XF86MonBrightnessUp",    hl.dsp.exec_cmd(home .. "/.config/hypr/scripts/brightness_control.sh up"),   lock_repeat)
 hl.bind("XF86MonBrightnessDown",  hl.dsp.exec_cmd(home .. "/.config/hypr/scripts/brightness_control.sh down"), lock_repeat)
 
--- Playerctl
-hl.bind("SUPER + bracketleft",          hl.dsp.exec_cmd("playerctl previous"))
-hl.bind("SUPER + bracketright",         hl.dsp.exec_cmd("playerctl next"))
-hl.bind("SUPER + backslash",            hl.dsp.exec_cmd("playerctl play-pause"))
-hl.bind("SUPER + SHIFT + bracketleft",  hl.dsp.exec_cmd("playerctl position 10-"))
-hl.bind("SUPER + SHIFT + bracketright", hl.dsp.exec_cmd("playerctl position 10+"))
+-- Playerctl & Media Control
+local media_cmd = home .. "/.config/hypr/scripts/media_control.sh "
+hl.bind("SUPER + bracketleft",          hl.dsp.exec_cmd(media_cmd .. "previous"))
+hl.bind("SUPER + bracketright",         hl.dsp.exec_cmd(media_cmd .. "next"))
+hl.bind("SUPER + backslash",            hl.dsp.exec_cmd(media_cmd .. "play-pause"))
+hl.bind("SUPER + SHIFT + bracketleft",  hl.dsp.exec_cmd(media_cmd .. "position 10-"))
+hl.bind("SUPER + SHIFT + bracketright", hl.dsp.exec_cmd(media_cmd .. "position 10+"))
+hl.bind("SUPER + CTRL + bracketleft",   hl.dsp.exec_cmd(media_cmd .. "switch-prev"))
+hl.bind("SUPER + CTRL + bracketright",  hl.dsp.exec_cmd(media_cmd .. "switch-next"))
 
 -- Gestures
 hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
