@@ -26,7 +26,7 @@
     "exec-if": "which swaync-client",
     "exec": "swaync-client -swb",
     "on-click": "swaync-client -t -sw",
-    "on-click-right": "swaync-client -d -sw",
+    "on-click-right": "bash ~/.config/hypr/scripts/toggle_dnd.sh",
     "on-click-middle": "swaync-client -R; swaync-client -rs",
     "escape": true
 	                     }, 
@@ -70,11 +70,9 @@
 "hyprland/workspaces": {
  "disable-scroll": true,
   "all-outputs": false,
-  "format": "{icon}",
-  "format-icons": {
-  "default": "󰜌",
-  "active": "󰜋",
-                  },
+  "format": "",
+  "tooltip": true,
+  "tooltip-format": "Workspace {name}",
 "persistent-workspaces" : {
   "1" : [],
   "2" : [],
@@ -103,6 +101,13 @@
 "group/volume",
 "custom/power_mode"
  ]
+},
+"custom/sysstats": {
+  "return-type": "json",
+  "exec": "python3 /home/alex/.config/waybar/scripts/center_status.py",
+  "on-click": "bash /home/alex/.config/waybar/scripts/center_click_left.sh",
+  "on-click-right": "bash /home/alex/.config/waybar/scripts/center_click_right.sh",
+  "escape": false
 },
 "group/sysstats": {
  "orientation": "horizontal",

@@ -35,5 +35,5 @@ for _ in $(seq 1 20); do
 done
 
 # Запуск Waybar без блокировки родительского шелла
-waybar -l off >/dev/null 2>&1 &
+setsid -f waybar -l off >/dev/null 2>&1 || (nohup waybar -l off >/dev/null 2>&1 &)
 disown || true

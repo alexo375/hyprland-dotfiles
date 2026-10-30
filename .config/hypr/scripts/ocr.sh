@@ -16,7 +16,7 @@ temp_img="/tmp/ocr_capture.png"
 
 # Выделение области экрана и снимок через grim
 if ! grim -g "$(slurp)" "$temp_img"; then
-    notify-send "OCR" "Screen capture cancelled"
+    notify-send -a "OCR" "OCR" "Capture cancelled"
     exit 1
 fi
 
@@ -32,12 +32,12 @@ fi
 if tesseract "$temp_img" stdout -l "$langs" | wl-copy; then
     text=$(wl-paste)
     if [ -n "$text" ]; then
-        notify-send "OCR" "Text copied to clipboard" -i chat-history-symbolic
+        notify-send -a "OCR" "OCR" "Copied to clipboard" -i chat-history-symbolic
     else
-        notify-send "OCR" "No text found in the image" -u critical
+        notify-send -a "OCR" "OCR" "No text found" -u critical
     fi
 else
-    notify-send "OCR" "Error during text recognition" -u critical
+    notify-send -a "OCR" "OCR" "Recognition failed" -u critical
 fi
 
 # Удаление временного файла снимка

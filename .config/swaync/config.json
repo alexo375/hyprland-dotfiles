@@ -1,10 +1,10 @@
 {
     "$schema": "/etc/xdg/swaync/configSchema.json",
-    "ignore-gtk-theme" : true,
-    "cssPriority" : "user",
+    "ignore-gtk-theme": true,
+    "cssPriority": "user",
     "positionX": "left",
     "positionY": "top",
-    "fit-to-screen": false,
+    "fit-to-screen": true,
     "control-center-margin-top": 20,
     "control-center-margin-bottom": 20,
     "control-center-margin-left": 20,
@@ -23,37 +23,52 @@
     "hide-on-action": false,
     "text-empty": "No notifications",
     "control-center-width": 580,
-    "fit-to-screen": true,
     "widgets": [
-      "mpris",
-      "title",
-      "dnd",
-      "notifications"
+        "mpris",
+        "title",
+        "dnd",
+        "notifications"
     ],
     "widget-config": {
-      "notifications": {
-        "vexpand": true
-      },
-    "title": {
-      "text": "Notifications",
-      "button-text": "󰎟",
-      "clear-all-button": true
+        "notifications": {
+            "vexpand": true
+        },
+        "title": {
+            "text": "Notifications",
+            "button-text": "\udb80\udf9f",
+            "clear-all-button": true
+        },
+        "dnd": {
+            "text": "Do Not Disturb"
+        },
+        "mpris": {
+            "autohide": false,
+            "show-album-art": "always",
+            "loop-carousel": true
+        },
+        "volume": {
+            "label": "\udb80\udece",
+            "show-per-app": false,
+            "show-per-app-icon": true,
+            "empty-list-label": "No audio sources available",
+            "animation-type": "slide_down",
+            "animation-duration": 500
+        }
     },
-    "dnd": {
-      "text": "Do Not Disturb"
+    "scripts": {
+        "waybar-dynamic-island": {
+            "exec": "bash /home/alex/.config/waybar/scripts/notify_island.sh",
+            "app-name": ".*"
+        }
     },
-    "mpris": {
-     "autohide": false,
-     "show-album-art": "always",
-     "loop-carousel": true
-    },
-    "volume": {
-     "label": "󰋎",
-     "show-per-app": false,
-     "show-per-app-icon": true,
-     "empty-list-label": "No audio sources available",
-     "animation-type": "slide_down",
-     "animation-duration": 500
-    }
+    "notification-visibility": {
+        "osd-ignore": {
+            "state": "ignored",
+            "summary": "^(Brightness|Volume|Muted|Mic Muted|Mic Unmuted).*"
+        },
+        "mute-all-popups": {
+            "state": "muted",
+            "app-name": ".*"
+        }
     }
 }

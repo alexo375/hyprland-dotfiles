@@ -17,7 +17,7 @@ monitor="$(
 )"
 
 if [[ -z "$monitor" ]]; then
-  notify-send "Screenshot failed" "No active monitor to capture"
+  notify-send -a "Screenshot" "Screenshot" "No active monitor found"
   exit 1
 fi
 
@@ -25,4 +25,4 @@ fi
 grim -o "$monitor" "$file"
 # Копирование снимка в буфер обмена Wayland
 wl-copy < "$file"
-notify-send "Screenshot saved" "$(basename "$file") copied to clipboard"
+notify-send -a "Screenshot" "Screenshot" "Copied to clipboard\n$file"

@@ -26,7 +26,7 @@ capture() {
   grim -g "$geometry" "$file"
   wl-copy < "$file"
   printf '%s\n' "$geometry" > "$state_file"
-  notify-send "Screenshot saved" "$(basename "$file") copied to clipboard"
+  notify-send -a "Screenshot" "Screenshot" "Copied to clipboard\n$file"
 }
 
 case "$mode" in
@@ -39,7 +39,7 @@ case "$mode" in
   --last|--repeat)
     # Повторный снимок ранее сохраненной области без интерактивного запроса
     if [[ ! -s "$state_file" ]]; then
-      notify-send "Screenshot" "No previous region found"
+      notify-send -a "Screenshot" "Screenshot" "No previous region found"
       exit 1
     fi
     geometry="$(<"$state_file")"

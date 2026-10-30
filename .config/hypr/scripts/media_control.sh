@@ -15,7 +15,7 @@ format_player_name() {
     local raw="$1"
     case "$raw" in
         yandex-music-tui*|yamusic*)
-            echo "Яндекс Музыка (TUI)"
+            echo "Yandex Music (TUI)"
             ;;
         firefox*)
             echo "Firefox"
@@ -51,15 +51,15 @@ show_notification() {
     local status_icon
     case "$status" in
         Playing)
-            status_text="▶ Играет"
+            status_text="Playing"
             status_icon="media-playback-start-symbolic"
             ;;
         Paused)
-            status_text="⏸ На паузе"
+            status_text="Paused"
             status_icon="media-playback-pause-symbolic"
             ;;
         *)
-            status_text="⏹ Остановлен"
+            status_text="Stopped"
             status_icon="media-playback-stop-symbolic"
             ;;
     esac
@@ -75,7 +75,7 @@ show_notification() {
     elif [ -n "$artist" ]; then
         track_info="${artist}"
     else
-        track_info="Нет информации о треке"
+        track_info="No track info"
     fi
 
     local old_nid=""
@@ -91,10 +91,12 @@ show_notification() {
     local new_nid
     new_nid=$(notify-send -p -e "${replace_arg[@]}" \
         -h string:x-canonical-private-synchronous:media_player \
+        -h boolean:transient:true \
         -u low -t 2000 \
         -i "$status_icon" \
-        "Управление: $friendly_name" \
-        "$status_text  •  $track_info")
+        -a "Media" \
+        "Media Source" \
+        "$friendly_name\n$status_text • $track_info")
 
     if [ -n "$new_nid" ]; then
         echo "$new_nid" > "$NID_FILE"
@@ -143,7 +145,7 @@ action_switch() {
     local total=${#players[@]}
 
     if [ "$total" -eq 0 ]; then
-        notify-send -e -u low -t 1500 -i audio-volume-muted-symbolic "Медиаплееры не найдены"
+        notify-send -a "Media" -e -u low -t 1500 -i audio-volume-muted-symbolic "Media" "No media players found"
         exit 0
     fi
 
@@ -176,6 +178,110 @@ action_switch() {
     show_notification "$target"
 }
 
+show_playback_notification() {
+    local action="$1"
+    local player="$2"
+    local friendly_name
+    friendly_name=$(format_player_name "$player")
+
+    local status
+    status=$(playerctl --player="$player" status 2>/dev/null || echo "Unknown")
+
+    local summary
+    local status_icon
+    case "$action" in
+        play-pause)
+            if [ "$status" == "Playing" ]; then
+                summary="Playing"
+                status_icon="media-playback-start-symbolic"
+            else
+                summary="Paused"
+                status_icon="media-playback-pause-symbolic"
+            fi
+            ;;
+        next)
+            summary="Next Track"
+            status_icon="media-skip-forward-symbolic"
+            ;;
+        previous)
+            summary="Previous Track"
+            status_icon="media-skip-backward-symbolic"
+            ;;
+        *)
+            summary="$action"
+            status_icon="media-playback-start-symbolic"
+            ;;
+    esac
+
+    local artist title track_info
+    artist=$(playerctl --player="$player" metadata --format '{{artist}}' 2>/dev/null)
+    title=$(playerctl --player="$player" metadata --format '{{title}}' 2>/dev/null)
+
+    if [ -n "$artist" ] && [ -n "$title" ]; then
+        track_info="${artist} — ${title}"
+    elif [ -n "$title" ]; then
+        track_info="${title}"
+    elif [ -n "$artist" ]; then
+        track_info="${artist}"
+    else
+        track_info="No track info"
+    fi
+
+    local old_nid=""
+    [ -f "$NID_FILE" ] && old_nid=$(cat "$NID_FILE" 2>/dev/null)
+
+    local replace_arg=()
+    if [ -n "$old_nid" ] && [ "$old_nid" -gt 0 ] 2>/dev/null; then
+        replace_arg=("-r" "$old_nid")
+    fi
+
+    local new_nid
+    new_nid=$(notify-send -p -e "${replace_arg[@]}" \
+        -h string:x-canonical-private-synchronous:media_playback \
+        -h boolean:transient:true \
+        -u low -t 2000 \
+        -i "$status_icon" \
+        -a "Media" \
+        "$summary" \
+        "$track_info\n$friendly_name")
+
+    if [ -n "$new_nid" ]; then
+        echo "$new_nid" > "$NID_FILE"
+    fi
+}
+
+show_seek_osd() {
+    local player="$1"
+    python3 -c '
+import subprocess, json, sys
+
+player = sys.argv[1]
+try:
+    pos = float(subprocess.check_output(["playerctl", f"--player={player}", "position"], stderr=subprocess.DEVNULL).decode().strip())
+    length_us = float(subprocess.check_output(["playerctl", f"--player={player}", "metadata", "mpris:length"], stderr=subprocess.DEVNULL).decode().strip())
+    length_s = length_us / 1000000.0
+    pct = int(round((pos / length_s) * 100)) if length_s > 0 else 0
+    time_str = subprocess.check_output(["playerctl", f"--player={player}", "metadata", "--format", "{{duration(position)}} / {{duration(mpris:length)}}"], stderr=subprocess.DEVNULL).decode().strip()
+except Exception:
+    time_str = "Seeking"
+    pct = -1
+
+data = {
+    "app": "osd",
+    "icon": "󰝚",
+    "summary": time_str,
+    "value": pct,
+    "duration": 1.5
+}
+with open("/dev/shm/waybar_notification.json", "w") as f:
+    json.dump(data, f)
+with open("/dev/shm/waybar_notification_active", "w") as f:
+    f.write("1")
+' "$player" 2>/dev/null || true
+
+    pkill -SIGUSR1 -f "^python3 .*center_status\.py" 2>/dev/null || true
+}
+
 action_cmd() {
     local cmd="$1"
     shift
@@ -204,15 +310,34 @@ case "$1" in
         ;;
     play-pause)
         action_cmd play-pause
+        target=$(get_current_target)
+        if [ -n "$target" ]; then
+            sleep 0.12
+            show_playback_notification "play-pause" "$target"
+        fi
         ;;
     next)
         action_cmd next
+        target=$(get_current_target)
+        if [ -n "$target" ]; then
+            sleep 0.18
+            show_playback_notification "next" "$target"
+        fi
         ;;
     previous)
         action_cmd previous
+        target=$(get_current_target)
+        if [ -n "$target" ]; then
+            sleep 0.18
+            show_playback_notification "previous" "$target"
+        fi
         ;;
     position)
         action_cmd position "$2"
+        target=$(get_current_target)
+        if [ -n "$target" ]; then
+            show_seek_osd "$target"
+        fi
         ;;
     *)
         echo "Usage: $0 {switch-next|switch-prev|play-pause|next|previous|position <offset>|status}"

@@ -3,7 +3,7 @@
 
 * {
   font-family: "JetBrainsMono Nerd Font Propo";
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   text-shadow: none;
   color: @secondary;
   box-shadow: 0rem 0rem 0rem 0rem transparent;
@@ -17,7 +17,7 @@
   outline: none;
   border: none;
   color: @secondary;
-  font-size: 0.625rem;
+  font-size: 1.20rem;
 }
 .notification button {
   background-color: @secondary;
@@ -82,7 +82,7 @@
   border-radius: var(--button-radius);
 }
 .widget-title label {
-  font-size: 1.5625rem;
+  font-size: 1.30rem;
 }
 .widget-title>button {
   background-color: transparent;
@@ -303,4 +303,29 @@ scrollbar trough:hover {
   background-color: @secondary_fixed; /* Color of the progress itself */
   border-radius: 0.625rem;
   min-height: 0.625rem;
+}
+
+
+.widget-dnd label {
+  font-size: 1.25rem;
+}
+.summary {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+.body {
+  font-size: 1.18rem;
+}
+.time {
+  font-size: 1.05rem;
+}
+.widget-mpris-title {
+  font-size: 1.30rem;
+  font-weight: bold;
+}
+.widget-mpris-subtitle {
+  font-size: 1.18rem;
+}
+.control-center-list-placeholder {
+  font-size: 1.25rem;
 }
