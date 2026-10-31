@@ -67,6 +67,16 @@ show_notification() {
     local artist title track_info
     artist=$(playerctl --player="$player" metadata --format '{{artist}}' 2>/dev/null)
     title=$(playerctl --player="$player" metadata --format '{{title}}' 2>/dev/null)
+    if [ -z "$artist" ] && [ -z "$title" ]; then
+        for ((i=0; i<4; i++)); do
+            sleep 0.05
+            artist=$(playerctl --player="$player" metadata --format '{{artist}}' 2>/dev/null)
+            title=$(playerctl --player="$player" metadata --format '{{title}}' 2>/dev/null)
+            if [ -n "$artist" ] || [ -n "$title" ]; then
+                break
+            fi
+        done
+    fi
 
     if [ -n "$artist" ] && [ -n "$title" ]; then
         track_info="${artist} — ${title}"
@@ -181,11 +191,17 @@ action_switch() {
 show_playback_notification() {
     local action="$1"
     local player="$2"
+    local forced_status="${3:-}"
+    local forced_artist="${4:-}"
+    local forced_title="${5:-}"
+
     local friendly_name
     friendly_name=$(format_player_name "$player")
 
-    local status
-    status=$(playerctl --player="$player" status 2>/dev/null || echo "Unknown")
+    local status="$forced_status"
+    if [ -z "$status" ]; then
+        status=$(playerctl --player="$player" status 2>/dev/null || echo "Unknown")
+    fi
 
     local summary
     local status_icon
@@ -213,10 +229,14 @@ show_playback_notification() {
             ;;
     esac
 
-    local artist title track_info
-    artist=$(playerctl --player="$player" metadata --format '{{artist}}' 2>/dev/null)
-    title=$(playerctl --player="$player" metadata --format '{{title}}' 2>/dev/null)
+    local artist="$forced_artist"
+    local title="$forced_title"
+    if [ -z "$artist" ] && [ -z "$title" ]; then
+        artist=$(playerctl --player="$player" metadata --format '{{artist}}' 2>/dev/null)
+        title=$(playerctl --player="$player" metadata --format '{{title}}' 2>/dev/null)
+    fi
 
+    local track_info
     if [ -n "$artist" ] && [ -n "$title" ]; then
         track_info="${artist} — ${title}"
     elif [ -n "$title" ]; then
@@ -309,27 +329,89 @@ case "$1" in
         fi
         ;;
     play-pause)
-        action_cmd play-pause
         target=$(get_current_target)
         if [ -n "$target" ]; then
-            sleep 0.12
-            show_playback_notification "play-pause" "$target"
+            echo "$target" > "$STATE_FILE"
+            old_status=$(playerctl --player="$target" status 2>/dev/null || true)
+            playerctl --player="$target" play-pause
+
+            # Опрашиваем смену статуса до 700мс (14 x 50мс), выходим мгновенно при смене
+            new_status=""
+            for ((i=0; i<14; i++)); do
+                sleep 0.05
+                cur=$(playerctl --player="$target" status 2>/dev/null || true)
+                if [ -n "$cur" ] && [ "$cur" != "$old_status" ]; then
+                    new_status="$cur"
+                    break
+                fi
+            done
+
+            if [ -z "$new_status" ]; then
+                cur=$(playerctl --player="$target" status 2>/dev/null || true)
+                if [ -n "$cur" ] && [ "$cur" != "$old_status" ]; then
+                    new_status="$cur"
+                elif [ "$old_status" == "Playing" ]; then
+                    new_status="Paused"
+                elif [ "$old_status" == "Paused" ]; then
+                    new_status="Playing"
+                else
+                    new_status="${cur:-Playing}"
+                fi
+            fi
+
+            artist=$(playerctl --player="$target" metadata --format '{{artist}}' 2>/dev/null || true)
+            title=$(playerctl --player="$target" metadata --format '{{title}}' 2>/dev/null || true)
+            if [ -z "$artist" ] && [ -z "$title" ]; then
+                for ((i=0; i<4; i++)); do
+                    sleep 0.05
+                    artist=$(playerctl --player="$target" metadata --format '{{artist}}' 2>/dev/null || true)
+                    title=$(playerctl --player="$target" metadata --format '{{title}}' 2>/dev/null || true)
+                    if [ -n "$artist" ] || [ -n "$title" ]; then
+                        break
+                    fi
+                done
+            fi
+
+            show_playback_notification "play-pause" "$target" "$new_status" "$artist" "$title"
         fi
         ;;
-    next)
-        action_cmd next
+    next|previous)
+        action="$1"
         target=$(get_current_target)
         if [ -n "$target" ]; then
-            sleep 0.18
-            show_playback_notification "next" "$target"
-        fi
-        ;;
-    previous)
-        action_cmd previous
-        target=$(get_current_target)
-        if [ -n "$target" ]; then
-            sleep 0.18
-            show_playback_notification "previous" "$target"
+            echo "$target" > "$STATE_FILE"
+            old_artist=$(playerctl --player="$target" metadata --format '{{artist}}' 2>/dev/null || true)
+            old_title=$(playerctl --player="$target" metadata --format '{{title}}' 2>/dev/null || true)
+            old_track="${old_artist} - ${old_title}"
+
+            playerctl --player="$target" "$action"
+
+            # Опрашиваем смену метаданных до 800мс (16 x 50мс), выходим мгновенно при получении нового трека
+            cur_artist=""
+            cur_title=""
+            for ((i=0; i<16; i++)); do
+                sleep 0.05
+                cur_artist=$(playerctl --player="$target" metadata --format '{{artist}}' 2>/dev/null || true)
+                cur_title=$(playerctl --player="$target" metadata --format '{{title}}' 2>/dev/null || true)
+                cur_track="${cur_artist} - ${cur_title}"
+
+                if { [ -n "$cur_title" ] || [ -n "$cur_artist" ]; } && [ "$cur_track" != "$old_track" ] && [ "$cur_track" != " - " ]; then
+                    break
+                fi
+            done
+
+            if [ -z "$cur_title" ] && [ -z "$cur_artist" ]; then
+                cur_artist=$(playerctl --player="$target" metadata --format '{{artist}}' 2>/dev/null || true)
+                cur_title=$(playerctl --player="$target" metadata --format '{{title}}' 2>/dev/null || true)
+            fi
+
+            if [ -z "$cur_title" ] && [ -z "$cur_artist" ] && [ -n "$old_title" ]; then
+                cur_artist="$old_artist"
+                cur_title="$old_title"
+            fi
+
+            cur_status=$(playerctl --player="$target" status 2>/dev/null || echo "Playing")
+            show_playback_notification "$action" "$target" "$cur_status" "$cur_artist" "$cur_title"
         fi
         ;;
     position)
