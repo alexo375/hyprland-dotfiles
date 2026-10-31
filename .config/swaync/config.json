@@ -66,6 +66,10 @@
             "state": "ignored",
             "summary": "^(Brightness|Volume|Muted|Mic Muted|Mic Unmuted).*"
         },
+        "media-ignore": {
+            "state": "ignored",
+            "app-name": "^(Media|playerctl)$"
+        },
         "mute-all-popups": {
             "state": "muted",
             "app-name": ".*"

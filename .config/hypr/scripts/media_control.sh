@@ -88,29 +88,31 @@ show_notification() {
         track_info="No track info"
     fi
 
-    local old_nid=""
-    if [ -f "$NID_FILE" ]; then
-        old_nid=$(cat "$NID_FILE" 2>/dev/null)
-    fi
+    send_island_notification "Media Source" "$friendly_name\n$status_text • $track_info" "󰝚" 2.0
+}
 
-    local replace_arg=()
-    if [ -n "$old_nid" ] && [ "$old_nid" -gt 0 ] 2>/dev/null; then
-        replace_arg=("-r" "$old_nid")
-    fi
+send_island_notification() {
+    local summary="$1"
+    local body="$2"
+    local icon="${3:-󰝚}"
+    local duration="${4:-2.0}"
 
-    local new_nid
-    new_nid=$(notify-send -p -e "${replace_arg[@]}" \
-        -h string:x-canonical-private-synchronous:media_player \
-        -h boolean:transient:true \
-        -u low -t 2000 \
-        -i "$status_icon" \
-        -a "Media" \
-        "Media Source" \
-        "$friendly_name\n$status_text • $track_info")
+    python3 -c '
+import json, sys, time
+data = {
+    "app": "Media",
+    "summary": sys.argv[1],
+    "body": sys.argv[2],
+    "icon": sys.argv[3],
+    "duration": float(sys.argv[4]),
+    "timestamp": time.time()
+}
+with open("/dev/shm/waybar_notification.json", "w") as f:
+    json.dump(data, f)
+' "$summary" "$body" "$icon" "$duration" 2>/dev/null || true
 
-    if [ -n "$new_nid" ]; then
-        echo "$new_nid" > "$NID_FILE"
-    fi
+    touch /dev/shm/waybar_notification_active 2>/dev/null || true
+    pkill -SIGUSR1 -f "^python3 .*center_status\.py" 2>/dev/null || true
 }
 
 get_current_target() {
@@ -247,27 +249,7 @@ show_playback_notification() {
         track_info="No track info"
     fi
 
-    local old_nid=""
-    [ -f "$NID_FILE" ] && old_nid=$(cat "$NID_FILE" 2>/dev/null)
-
-    local replace_arg=()
-    if [ -n "$old_nid" ] && [ "$old_nid" -gt 0 ] 2>/dev/null; then
-        replace_arg=("-r" "$old_nid")
-    fi
-
-    local new_nid
-    new_nid=$(notify-send -p -e "${replace_arg[@]}" \
-        -h string:x-canonical-private-synchronous:media_playback \
-        -h boolean:transient:true \
-        -u low -t 2000 \
-        -i "$status_icon" \
-        -a "Media" \
-        "$summary" \
-        "$track_info\n$friendly_name")
-
-    if [ -n "$new_nid" ]; then
-        echo "$new_nid" > "$NID_FILE"
-    fi
+    send_island_notification "$summary" "$track_info\n$friendly_name" "󰝚" 2.0
 }
 
 show_seek_osd() {
