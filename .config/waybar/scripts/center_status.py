@@ -141,6 +141,11 @@ def format_notification(noti):
     body = noti.get("body", "")
     urgency = noti.get("urgency", "Normal")
 
+    if isinstance(body, str):
+        body = body.replace("\\n", "\n").replace("\\r", "")
+    if isinstance(summary, str):
+        summary = summary.replace("\\n", " ").replace("\\r", "")
+
     if app == "osd":
         icon = noti.get("icon", "󰕾")
         val = noti.get("value", -1)

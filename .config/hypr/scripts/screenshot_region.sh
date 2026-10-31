@@ -26,7 +26,7 @@ capture() {
   grim -g "$geometry" "$file"
   wl-copy < "$file"
   printf '%s\n' "$geometry" > "$state_file"
-  notify-send -a "Screenshot" "Screenshot" "Copied to clipboard\n$file"
+  notify-send -a "Screenshot" "Screenshot" $'Copied to clipboard\n'"$file"
 }
 
 case "$mode" in

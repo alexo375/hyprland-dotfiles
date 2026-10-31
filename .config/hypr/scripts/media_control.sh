@@ -88,7 +88,7 @@ show_notification() {
         track_info="No track info"
     fi
 
-    send_island_notification "Media Source" "$friendly_name\n$status_text • $track_info" "󰝚" 2.0
+    send_island_notification "Media Source" "${friendly_name}"$'\n'"${status_text} • ${track_info}" "󰝚" 2.0
 }
 
 send_island_notification() {
@@ -101,8 +101,8 @@ send_island_notification() {
 import json, sys, time
 data = {
     "app": "Media",
-    "summary": sys.argv[1],
-    "body": sys.argv[2],
+    "summary": sys.argv[1].replace("\\n", " "),
+    "body": sys.argv[2].replace("\\n", "\n"),
     "icon": sys.argv[3],
     "duration": float(sys.argv[4]),
     "timestamp": time.time()
@@ -249,7 +249,7 @@ show_playback_notification() {
         track_info="No track info"
     fi
 
-    send_island_notification "$summary" "$track_info\n$friendly_name" "󰝚" 2.0
+    send_island_notification "$summary" "${track_info}"$'\n'"${friendly_name}" "󰝚" 2.0
 }
 
 show_seek_osd() {
