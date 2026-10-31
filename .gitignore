@@ -40,4 +40,8 @@ result-*
 .config/lazydocker/config.yml
 .config/fish/conf.d/newt_colors.fish
 
+# Python
+__pycache__/
+*.pyc
+
 

@@ -24,8 +24,8 @@ python3 -c '
 import json, sys, time
 data = {
     "app": sys.argv[1],
-    "summary": sys.argv[2],
-    "body": sys.argv[3],
+    "summary": sys.argv[2].replace("\\n", " "),
+    "body": sys.argv[3].replace("\\n", "\n"),
     "urgency": sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] else "Normal",
     "id": sys.argv[5] if len(sys.argv) > 5 else "0",
     "timestamp": time.time()

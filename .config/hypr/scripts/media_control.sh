@@ -1,106 +1,48 @@
 #!/usr/bin/env bash
 
 # Скрипт управления активным источником воспроизведения (MPRIS / playerctl)
-# Позволяет переключать целевой плеер между несколькими источниками (Firefox, ymtui и др.)
-# и отправляет OSD-уведомление без спама в историю swaync.
+# Поддерживает выбор целевого плеера, хоткеи управления и OSD-шкалу перемотки.
+# Уведомления о воспроизведении обрабатываются реактивно через media_listener.py.
 
 STATE_FILE="/tmp/active_media_player_${UID}"
-NID_FILE="/tmp/active_media_player_nid_${UID}"
 
 get_players() {
     playerctl -l 2>/dev/null | grep -v '^$'
 }
 
-format_player_name() {
+get_player_identity() {
     local raw="$1"
-    case "$raw" in
-        yandex-music-tui*|yamusic*)
-            echo "Yandex Music (TUI)"
-            ;;
-        firefox*)
-            echo "Firefox"
-            ;;
-        chromium*|google-chrome*)
-            echo "Chromium"
-            ;;
-        spotify*)
-            echo "Spotify"
-            ;;
-        mpv*)
-            echo "MPV"
-            ;;
-        vlc*)
-            echo "VLC"
-            ;;
-        *)
-            # Отрезаем суффикс instance если есть
-            echo "${raw%%.*}"
-            ;;
-    esac
+    local identity=""
+    identity=$(busctl --user get-property "org.mpris.MediaPlayer2.${raw}" /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2 Identity 2>/dev/null | cut -d'"' -f2)
+    if [ -n "$identity" ]; then
+        echo "$identity"
+        return
+    fi
+    echo "${raw%%.*}" | tr '_-' ' ' | awk '{for(i=1;i<=NF;i++)sub(/./,toupper(substr($i,1,1)),$i)}1'
 }
 
-show_notification() {
-    local player="$1"
-    local friendly_name
-    friendly_name=$(format_player_name "$player")
+send_island_notification() {
+    local summary="$1"
+    local body="$2"
+    local icon="${3:-󰝚}"
+    local duration="${4:-2.0}"
 
-    local status
-    status=$(playerctl --player="$player" status 2>/dev/null || echo "Unknown")
+    python3 -c '
+import json, sys, time
+data = {
+    "app": "Media",
+    "summary": sys.argv[1].replace("\\n", " "),
+    "body": sys.argv[2].replace("\\n", "\n"),
+    "icon": sys.argv[3],
+    "duration": float(sys.argv[4]),
+    "timestamp": time.time()
+}
+with open("/dev/shm/waybar_notification.json", "w") as f:
+    json.dump(data, f)
+' "$summary" "$body" "$icon" "$duration" 2>/dev/null || true
 
-    local status_text
-    local status_icon
-    case "$status" in
-        Playing)
-            status_text="Playing"
-            status_icon="media-playback-start-symbolic"
-            ;;
-        Paused)
-            status_text="Paused"
-            status_icon="media-playback-pause-symbolic"
-            ;;
-        *)
-            status_text="Stopped"
-            status_icon="media-playback-stop-symbolic"
-            ;;
-    esac
-
-    local artist title track_info
-    artist=$(playerctl --player="$player" metadata --format '{{artist}}' 2>/dev/null)
-    title=$(playerctl --player="$player" metadata --format '{{title}}' 2>/dev/null)
-
-    if [ -n "$artist" ] && [ -n "$title" ]; then
-        track_info="${artist} — ${title}"
-    elif [ -n "$title" ]; then
-        track_info="${title}"
-    elif [ -n "$artist" ]; then
-        track_info="${artist}"
-    else
-        track_info="No track info"
-    fi
-
-    local old_nid=""
-    if [ -f "$NID_FILE" ]; then
-        old_nid=$(cat "$NID_FILE" 2>/dev/null)
-    fi
-
-    local replace_arg=()
-    if [ -n "$old_nid" ] && [ "$old_nid" -gt 0 ] 2>/dev/null; then
-        replace_arg=("-r" "$old_nid")
-    fi
-
-    local new_nid
-    new_nid=$(notify-send -p -e "${replace_arg[@]}" \
-        -h string:x-canonical-private-synchronous:media_player \
-        -h boolean:transient:true \
-        -u low -t 2000 \
-        -i "$status_icon" \
-        -a "Media" \
-        "Media Source" \
-        "$friendly_name\n$status_text • $track_info")
-
-    if [ -n "$new_nid" ]; then
-        echo "$new_nid" > "$NID_FILE"
-    fi
+    touch /dev/shm/waybar_notification_active 2>/dev/null || true
+    pkill -SIGUSR1 -f "^python3 .*center_status\.py" 2>/dev/null || true
 }
 
 get_current_target() {
@@ -115,7 +57,7 @@ get_current_target() {
         return
     fi
 
-    # Проверяем, есть ли сохраненный плеер среди доступных
+    # Проверяем сохраненный плеер среди доступных
     if [ -n "$saved" ]; then
         for p in "${mapfile_players[@]}"; do
             if [ "$p" == "$saved" ]; then
@@ -125,7 +67,7 @@ get_current_target() {
         done
     fi
 
-    # Иначе ищем первый плеер, который играет (Playing)
+    # Иначе ищем первый играющий
     for p in "${mapfile_players[@]}"; do
         local st
         st=$(playerctl --player="$p" status 2>/dev/null)
@@ -135,7 +77,6 @@ get_current_target() {
         fi
     done
 
-    # По умолчанию первый доступный
     echo "${mapfile_players[0]}"
 }
 
@@ -145,13 +86,7 @@ action_switch() {
     local total=${#players[@]}
 
     if [ "$total" -eq 0 ]; then
-        notify-send -a "Media" -e -u low -t 1500 -i audio-volume-muted-symbolic "Media" "No media players found"
-        exit 0
-    fi
-
-    if [ "$total" -eq 1 ]; then
-        echo "${players[0]}" > "$STATE_FILE"
-        show_notification "${players[0]}"
+        send_island_notification "Media" "No media players found" "󰝚" 2.0
         exit 0
     fi
 
@@ -175,79 +110,17 @@ action_switch() {
 
     local target="${players[$new_idx]}"
     echo "$target" > "$STATE_FILE"
-    show_notification "$target"
-}
 
-show_playback_notification() {
-    local action="$1"
-    local player="$2"
     local friendly_name
-    friendly_name=$(format_player_name "$player")
-
+    friendly_name=$(get_player_identity "$target")
     local status
-    status=$(playerctl --player="$player" status 2>/dev/null || echo "Unknown")
+    status=$(playerctl --player="$target" status 2>/dev/null || echo "Unknown")
+    local track
+    track=$(playerctl --player="$target" metadata --format '{{artist}} — {{title}}' 2>/dev/null || echo "")
 
-    local summary
-    local status_icon
-    case "$action" in
-        play-pause)
-            if [ "$status" == "Playing" ]; then
-                summary="Playing"
-                status_icon="media-playback-start-symbolic"
-            else
-                summary="Paused"
-                status_icon="media-playback-pause-symbolic"
-            fi
-            ;;
-        next)
-            summary="Next Track"
-            status_icon="media-skip-forward-symbolic"
-            ;;
-        previous)
-            summary="Previous Track"
-            status_icon="media-skip-backward-symbolic"
-            ;;
-        *)
-            summary="$action"
-            status_icon="media-playback-start-symbolic"
-            ;;
-    esac
-
-    local artist title track_info
-    artist=$(playerctl --player="$player" metadata --format '{{artist}}' 2>/dev/null)
-    title=$(playerctl --player="$player" metadata --format '{{title}}' 2>/dev/null)
-
-    if [ -n "$artist" ] && [ -n "$title" ]; then
-        track_info="${artist} — ${title}"
-    elif [ -n "$title" ]; then
-        track_info="${title}"
-    elif [ -n "$artist" ]; then
-        track_info="${artist}"
-    else
-        track_info="No track info"
-    fi
-
-    local old_nid=""
-    [ -f "$NID_FILE" ] && old_nid=$(cat "$NID_FILE" 2>/dev/null)
-
-    local replace_arg=()
-    if [ -n "$old_nid" ] && [ "$old_nid" -gt 0 ] 2>/dev/null; then
-        replace_arg=("-r" "$old_nid")
-    fi
-
-    local new_nid
-    new_nid=$(notify-send -p -e "${replace_arg[@]}" \
-        -h string:x-canonical-private-synchronous:media_playback \
-        -h boolean:transient:true \
-        -u low -t 2000 \
-        -i "$status_icon" \
-        -a "Media" \
-        "$summary" \
-        "$track_info\n$friendly_name")
-
-    if [ -n "$new_nid" ]; then
-        echo "$new_nid" > "$NID_FILE"
-    fi
+    local body="$friendly_name"
+    [ -n "$track" ] && body="${friendly_name}"$'\n'"${status} • ${track}"
+    send_island_notification "Media Source" "$body" "󰝚" 2.0
 }
 
 show_seek_osd() {
@@ -289,6 +162,7 @@ action_cmd() {
     target=$(get_current_target)
 
     if [ -n "$target" ]; then
+        echo "$target" > "$STATE_FILE"
         playerctl --player="$target" "$cmd" "$@"
     else
         playerctl "$cmd" "$@"
@@ -302,41 +176,29 @@ case "$1" in
     switch-prev)
         action_switch "prev"
         ;;
-    status)
-        target=$(get_current_target)
-        if [ -n "$target" ]; then
-            show_notification "$target"
-        fi
-        ;;
     play-pause)
         action_cmd play-pause
-        target=$(get_current_target)
-        if [ -n "$target" ]; then
-            sleep 0.12
-            show_playback_notification "play-pause" "$target"
-        fi
         ;;
     next)
         action_cmd next
-        target=$(get_current_target)
-        if [ -n "$target" ]; then
-            sleep 0.18
-            show_playback_notification "next" "$target"
-        fi
         ;;
     previous)
         action_cmd previous
-        target=$(get_current_target)
-        if [ -n "$target" ]; then
-            sleep 0.18
-            show_playback_notification "previous" "$target"
-        fi
         ;;
     position)
-        action_cmd position "$2"
         target=$(get_current_target)
         if [ -n "$target" ]; then
+            playerctl --player="$target" position "$2"
             show_seek_osd "$target"
+        fi
+        ;;
+    status)
+        target=$(get_current_target)
+        if [ -n "$target" ]; then
+            friendly=$(get_player_identity "$target")
+            st=$(playerctl --player="$target" status 2>/dev/null || echo "Unknown")
+            tr=$(playerctl --player="$target" metadata --format '{{artist}} — {{title}}' 2>/dev/null || echo "")
+            send_island_notification "Media Source" "${friendly}"$'\n'"${st} • ${tr}" "󰝚" 2.0
         fi
         ;;
     *)

@@ -25,4 +25,4 @@ fi
 grim -o "$monitor" "$file"
 # Копирование снимка в буфер обмена Wayland
 wl-copy < "$file"
-notify-send -a "Screenshot" "Screenshot" "Copied to clipboard\n$file"
+notify-send -a "Screenshot" "Screenshot" $'Copied to clipboard\n'"$file"
