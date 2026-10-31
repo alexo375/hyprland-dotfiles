@@ -3,6 +3,15 @@ command = "awww"
 arguments = ["img", "--transition-type", "wipe", "--transition-fps", "240", "--transition-step", "255", "--transition-duration", "1", "--transition-angle", "225" ]
 set = true
 
+[config.custom_colors]
+red = { color = "#f7768e", blend = true }
+green = { color = "#9ece6a", blend = true }
+yellow = { color = "#e0af68", blend = true }
+blue = { color = "#7aa2f7", blend = true }
+magenta = { color = "#bb9af7", blend = true }
+cyan = { color = "#7dcfff", blend = true }
+
+
 [templates.waybar]
 input_path = '~/.config/matugen/templates/colors.css'
 output_path = '~/.config/colors/colors.css'
@@ -75,4 +84,18 @@ output_path = '~/.config/quickshell/overview/common/Appearance.colors.qml'
 input_path = '~/.config/matugen/templates/tmux.conf'
 output_path = '~/.config/tmux/colors.conf'
 post_hook = 'tmux source-file ~/.config/tmux/tmux.conf 2>/dev/null || true'
+
+[templates.lazygit]
+input_path = '~/.config/matugen/templates/lazygit.yml'
+output_path = '~/.config/lazygit/config.yml'
+
+[templates.lazydocker]
+input_path = '~/.config/matugen/templates/lazydocker.yml'
+output_path = '~/.config/lazydocker/config.yml'
+
+[templates.newt]
+input_path = '~/.config/matugen/templates/newt_colors.fish'
+output_path = '~/.config/fish/conf.d/newt_colors.fish'
+
+
 

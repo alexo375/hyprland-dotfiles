@@ -165,6 +165,9 @@ in
     EDITOR = "code";
     VISUAL = "code";
     JAVA_HOME = "${pkgs.jdk21}/lib/openjdk";
+    # Цветовая схема для TUI-утилит на базе библиотеки newt (nmtui, whiptail),
+    # устраняющая проблемы низкой контрастности дефолтной серо-красной палитры
+    NEWT_COLORS = "root=white,black:window=white,black:border=blue,black:shadow=black,default:title=white,black:label=white,black:listbox=lightgray,black:actlistbox=white,blue:actsellistbox=white,blue:button=white,gray:actbutton=white,blue:compactbutton=white,black:entry=white,gray:disentry=gray,black:checkbox=white,black:actcheckbox=white,blue:textbox=white,black";
   };
 
   # =========================================================================

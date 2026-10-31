@@ -1,0 +1,11 @@
+gui:
+  theme:
+    activeBorderColor:
+      - '{{colors.primary.default.hex}}'
+      - bold
+    inactiveBorderColor:
+      - '{{colors.outline.default.hex}}'
+    selectedLineBgColor:
+      - '{{colors.surface_container_highest.default.hex}}'
+    optionsTextColor:
+      - '{{colors.primary.default.hex}}'

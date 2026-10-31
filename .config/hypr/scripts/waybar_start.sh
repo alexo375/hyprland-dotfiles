@@ -9,6 +9,11 @@ set -euo pipefail
 
 runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
+# Инициализация дефолтной темы, если цвета еще не сгенерированы
+if [[ ! -f "$HOME/.config/colors/colors.css" && -d "$HOME/.config/colors/defaults" ]]; then
+  cp -r "$HOME/.config/colors/defaults/"* "$HOME/.config/colors/" 2>/dev/null || true
+fi
+
 # Завершение предыдущих инстансов Waybar
 pkill -x waybar 2>/dev/null || true
 pkill -x .waybar-wrapped 2>/dev/null || true

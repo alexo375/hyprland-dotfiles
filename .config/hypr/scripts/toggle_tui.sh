@@ -32,5 +32,6 @@ if [[ -n "$addr" ]]; then
   exit 0
 fi
 
-# Первичный запуск в центрированном плавающем окне kitty
-hyprctl dispatch 'hl.dsp.exec_cmd("kitty --class '"${class}"' --title '"${title}"' '"${app}"'", { float = true, size = { 879, 879 }, center = true })' >/dev/null
+# Первичный запуск в центрированном плавающем окне kitty с окружением fish
+hyprctl dispatch 'hl.dsp.exec_cmd("kitty --class '"${class}"' --title '"${title}"' fish -c \"exec '"${app}"'\"", { float = true, size = { 879, 879 }, center = true })' >/dev/null
+
