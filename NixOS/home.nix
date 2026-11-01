@@ -162,12 +162,21 @@ in
   # Переменные сессии пользователя
   home.sessionVariables = {
     BROWSER = "firefox";
-    EDITOR = "code";
-    VISUAL = "code";
+    EDITOR = "nvim";
+    VISUAL = "code --wait";
     JAVA_HOME = "${pkgs.jdk21}/lib/openjdk";
     # Цветовая схема для TUI-утилит на базе библиотеки newt (nmtui, whiptail),
     # устраняющая проблемы низкой контрастности дефолтной серо-красной палитры
     NEWT_COLORS = "root=white,black:window=white,black:border=blue,black:shadow=black,default:title=white,black:label=white,black:listbox=lightgray,black:actlistbox=white,blue:actsellistbox=white,blue:button=white,gray:actbutton=white,blue:compactbutton=white,black:entry=white,gray:disentry=gray,black:checkbox=white,black:actcheckbox=white,blue:textbox=white,black";
+  };
+
+  programs.bash = {
+    enable = true;
+    shellAliases = {
+      v = "nvim";
+      vi = "nvim";
+      vim = "nvim";
+    };
   };
 
   # =========================================================================
@@ -195,13 +204,16 @@ in
       nrs = "sudo nixos-rebuild switch --flake /home/alex/hyprland-dotfiles/NixOS#nixos";
       nrb = "sudo nixos-rebuild boot --flake /home/alex/hyprland-dotfiles/NixOS#nixos";
       nfu = "nix flake update --flake /home/alex/hyprland-dotfiles/NixOS";
-      nce = "vim /home/alex/hyprland-dotfiles/NixOS/configuration.nix";
-      nhe = "vim /home/alex/hyprland-dotfiles/NixOS/home.nix";
-      nfe = "vim /home/alex/hyprland-dotfiles/NixOS/flake.nix";
+      nce = "nvim /home/alex/hyprland-dotfiles/NixOS/configuration.nix";
+      nhe = "nvim /home/alex/hyprland-dotfiles/NixOS/home.nix";
+      nfe = "nvim /home/alex/hyprland-dotfiles/NixOS/flake.nix";
       try = "nix-shell -p";
       ncg = "sudo nix-collect-garbage -d";
 
       # Утилиты и терминал
+      v = "nvim";
+      vi = "nvim";
+      vim = "nvim";
       neo = "neo --colormode=32 -C /home/alex/.config/neo/colors-matugen.neo";
       ls = "eza -la";
       dnd = "dragon-drop -x -A";
@@ -321,6 +333,10 @@ in
     unimatrix
     pkgs-cli.eza
     pkgs-cli.yazi
+    neovim
+    ripgrep
+    fd
+    tree-sitter
     git
     jq
     socat
