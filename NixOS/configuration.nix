@@ -56,8 +56,6 @@ in
 
   boot.kernelModules = [
     "kvm-intel"
-    "uinput"
-    "xpad"
   ];
 
   # Блэклист термодрайверов Intel DTT для ноутбука Huawei MateBook 14s (2022).
@@ -285,10 +283,9 @@ in
     pulse.enable = true;
   };
 
-  # Bluetooth и геймпады
+  # Bluetooth
   hardware.bluetooth.enable = true;
   hardware.enableRedistributableFirmware = true;
-  hardware.xpadneo.enable = true;
   hardware.opentabletdriver.enable = false;
 
   # Аппаратное ускорение графики Intel (VA-API / QuickSync)
@@ -302,7 +299,7 @@ in
   };
 
   # =========================================================================
-  # 7. Виртуализация, сервисы и игры
+  # 7. Виртуализация и сервисы
   # =========================================================================
 
   # Агент SSH
@@ -323,26 +320,11 @@ in
     };
   };
 
-  # Игровые платформы Steam и Gamescope
-  programs.steam = {
-    enable = true;
-    gamescopeSession.enable = false;
-    remotePlay.openFirewall = true;
-    dedicatedServer.openFirewall = true;
-  };
-
-  programs.gamescope = {
-    enable = true;
-    package = pkgs.gamescope;
-  };
-
   # Служба печати CUPS
   services.printing.enable = true;
 
-  # Правила Udev для SwayOSD и устройств
+  # Правила Udev для SwayOSD
   services.udev.packages = with pkgs; [
-    game-devices-udev-rules
-    steam-devices-udev-rules
     swayosd
   ];
 
@@ -457,15 +439,10 @@ in
       vscode
       vscodium-fhs
 
-      # Игры и эмуляция
+      # Утилиты для устройств и отладки
       android-tools
       evtest
-      mangohud
-      protonplus
-      r2modman
-      scanmem
       scrcpy
-      steam
 
       # Мультимедиа и загрузчики
       tenacity
@@ -492,9 +469,6 @@ in
   # =========================================================================
 
   services.udev.extraRules = ''
-    # Доступ к uinput для эмуляции контроллеров и оверлеев в Steam
-    KERNEL=="uinput", MODE="0660", GROUP="input", OPTIONS+="static_node=uinput", TAG+="uaccess"
-
     # Клавиатура Teevolution Terra
     SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3554", ATTRS{idProduct}=="f523", MODE="0666", TAG+="uaccess"
     SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3554", ATTRS{idProduct}=="f522", MODE="0666", TAG+="uaccess"

@@ -134,17 +134,6 @@ in
     "video/mpeg" = [ "mpv.desktop" ];
   };
 
-  # Кастомный ярлык Steam с масштабированием под HiDPI экраны
-  xdg.desktopEntries.steam = {
-    name = "Steam";
-    exec = "env STEAM_FORCE_DESKTOPUI_SCALING=1.5 GDK_SCALE=2 GDK_DPI_SCALE=0.75 steam -forcedesktopscaling 1.5 %U";
-    terminal = false;
-    type = "Application";
-    icon = "steam";
-    categories = [ "Game" "Network" ];
-    mimeType = [ "x-scheme-handler/steam" "x-scheme-handler/steamlink" ];
-  };
-
   # =========================================================================
   # 4. Браузеры и переменные сессии
   # =========================================================================

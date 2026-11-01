@@ -92,21 +92,9 @@ windowrule {
 }
 
 windowrule {
-  name = windowrule-13
-  workspace = name:Steam silent
-  match:class = steam
-}
-
-windowrule {
   name = windowrule-14
   workspace = name:Windows silent
   match:class = windows
-}
-
-windowrule {
-  name = windowrule-15
-  fullscreen = on
-  match:class = ^(gamescope)$
 }
 
 layerrule {
