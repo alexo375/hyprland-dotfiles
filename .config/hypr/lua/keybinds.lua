@@ -28,6 +28,8 @@ hl.bind("Print",                     hl.dsp.exec_cmd(home .. "/.config/hypr/scri
 hl.bind("SUPER + SHIFT + S",         hl.dsp.exec_cmd(home .. "/.config/hypr/scripts/screenshot_region.sh"))
 hl.bind("SUPER + CTRL + SHIFT + S",  hl.dsp.exec_cmd(home .. "/.config/hypr/scripts/screenshot_region.sh --repeat"))
 hl.bind("SUPER + SHIFT + R",         hl.dsp.exec_cmd(home .. "/.config/RofiScripts/Recorder/Recorder.sh"))
+hl.bind("SUPER + ALT + R",           hl.dsp.exec_cmd(home .. "/.config/hypr/scripts/screenrec.sh --toggle"))
+hl.bind("SUPER + CTRL + R",          hl.dsp.exec_cmd(home .. "/.config/hypr/scripts/screenrec.sh --toggle-pause"))
 hl.bind("SUPER + SHIFT + T",         hl.dsp.exec_cmd(home .. "/.config/hypr/scripts/ocr.sh"))
 hl.bind("SUPER + SHIFT + E",         hl.dsp.exec_cmd(home .. "/.config/RofiScripts/Emoji/Emoji.sh"))
 hl.bind("SUPER + SHIFT + P",         hl.dsp.exec_cmd("hyprpicker -a -l"))

@@ -17,6 +17,11 @@ chosen=$(
     printf "%s\n" "$back_label"
 
     if [ "$is_recording" = true ]; then
+      if ~/.config/hypr/scripts/screenrec.sh --is-paused; then
+        printf "%s\n" "󰐊 Resume Recording"
+      else
+        printf "%s\n" "󰏤 Pause Recording"
+      fi
       printf "%s\n" "󰓛 Stop Recording"
     else
       printf "%s\n" "󰖟 Record Monitor"
@@ -39,6 +44,8 @@ fi
 case "$chosen" in
   "󰖟 Record Monitor") ~/.config/hypr/scripts/screenrec.sh --start monitor ;;
   "󰹑 Record Region") ~/.config/hypr/scripts/screenrec.sh --start region ;;
+  "󰏤 Pause Recording") ~/.config/hypr/scripts/screenrec.sh --pause ;;
+  "󰐊 Resume Recording") ~/.config/hypr/scripts/screenrec.sh --resume ;;
   "󰓛 Stop Recording") ~/.config/hypr/scripts/screenrec.sh --stop ;;
   "$open_folder_label") ~/.config/hypr/scripts/screenrec.sh --open-dir ;;
   *) exit 1 ;;

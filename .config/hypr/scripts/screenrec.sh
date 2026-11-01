@@ -32,18 +32,30 @@ signal_waybar() {
 }
 
 # Отправка системного уведомления
+PAUSE_FILE="$STATE_DIR/paused"
+
 notify() {
+  local title="${1:-Screen Recorder}"
+  local body="${2:-}"
+  if [[ -z "$body" ]]; then
+    body="$title"
+    title="Screen Recorder"
+  fi
   if have notify-send; then
-    notify-send "Screen Recorder" "$1"
+    notify-send -a "Screen Recorder" -i media-record "$title" "$body"
   fi
 }
 
 open_recordings_dir() {
   mkdir -p "$VIDEOS_DIR"
-  if have xdg-open; then
-    setsid -f xdg-open "$VIDEOS_DIR" >/dev/null 2>&1 || notify "Failed to open: $VIDEOS_DIR"
+  if have kitty && have yazi; then
+    kitty -e yazi "$VIDEOS_DIR" &
+  elif have yazi; then
+    x-terminal-emulator -e yazi "$VIDEOS_DIR" &
+  elif have xdg-open; then
+    setsid -f xdg-open "$VIDEOS_DIR" >/dev/null 2>&1 || notify "Screen Recorder" "Failed to open: $VIDEOS_DIR"
   else
-    notify "xdg-open is not installed"
+    notify "Screen Recorder" "No file manager found"
   fi
 }
 
@@ -55,8 +67,56 @@ is_recording() {
   kill -0 "$pid" 2>/dev/null
 }
 
+is_paused() {
+  [[ -f "$PAUSE_FILE" ]]
+}
+
 cleanup_state() {
-  rm -f "$PID_FILE" "$META_FILE"
+  rm -f "$PID_FILE" "$META_FILE" "$PAUSE_FILE"
+}
+
+pause_recording() {
+  if ! is_recording; then
+    notify "Screen Recorder" "No active recording to pause"
+    return 1
+  fi
+  if is_paused; then
+    notify "Screen Recorder" "Recording is already paused"
+    return 0
+  fi
+  local pid
+  pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+  if [[ -n "$pid" ]]; then
+    kill -STOP "$pid" 2>/dev/null || true
+    touch "$PAUSE_FILE"
+    notify "Recording Paused" "Video capture suspended"
+  fi
+}
+
+resume_recording() {
+  if ! is_recording; then
+    notify "Screen Recorder" "No active recording to resume"
+    return 1
+  fi
+  if ! is_paused; then
+    notify "Screen Recorder" "Recording is not paused"
+    return 0
+  fi
+  local pid
+  pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+  if [[ -n "$pid" ]]; then
+    kill -CONT "$pid" 2>/dev/null || true
+    rm -f "$PAUSE_FILE"
+    notify "Recording Resumed" "Video capture resumed"
+  fi
+}
+
+toggle_pause() {
+  if is_paused; then
+    resume_recording
+  else
+    pause_recording
+  fi
 }
 
 meta_get() {
@@ -131,6 +191,9 @@ start_recording() {
   echo "$pid" >"$PID_FILE"
   write_meta "$mode" "$output" "$started"
   signal_waybar
+  local mode_label="Region"
+  [[ "$mode" == "monitor" ]] && mode_label="Monitor ($target)"
+  notify "Recording Started" "Mode: $mode_label"
 }
 
 stop_recording() {
@@ -138,12 +201,17 @@ stop_recording() {
   if ! is_recording; then
     cleanup_state
     signal_waybar
-    notify "No active recording"
+    notify "Screen Recorder" "No active recording"
     exit 0
   fi
 
   pid="$(cat "$PID_FILE")"
   file="$(meta_get file || true)"
+
+  if is_paused; then
+    kill -CONT "$pid" 2>/dev/null || true
+    rm -f "$PAUSE_FILE"
+  fi
 
   kill -INT "$pid" 2>/dev/null || true
   for _ in $(seq 1 40); do
@@ -153,10 +221,10 @@ stop_recording() {
 
   cleanup_state
   signal_waybar
-  if [[ -n "${file:-}" ]]; then
-    notify "Saved: $(basename "$file")"
+  if [[ -n "${file:-}" && -f "$file" ]]; then
+    notify "Recording Saved" "$(basename "$file")"
   else
-    notify "Recording stopped"
+    notify "Recording Stopped" "Recording finished"
   fi
 }
 
@@ -213,6 +281,18 @@ case "${1:-}" in
     else
       start_by_mode "region"
     fi
+    ;;
+  --pause)
+    pause_recording
+    ;;
+  --resume)
+    resume_recording
+    ;;
+  --toggle-pause)
+    toggle_pause
+    ;;
+  --is-paused)
+    if is_paused; then exit 0; else exit 1; fi
     ;;
   --waybar)
     status_json

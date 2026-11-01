@@ -22,7 +22,6 @@
   "custom/sysstats",
 ],
  "modules-right": [
-  "custom/screenrec",
   "group/volpower",
   "battery",
   "group/netblue",
