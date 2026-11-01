@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 Bluetooth Event Monitor Daemon for Hyprland / Waybar / SwayNC.
-Listens to bluetoothctl event stream and dispatches desktop notifications:
-- Device connected (including battery percentage if available)
+Listens to bluetoothctl event stream via PTY (to prevent buffering and strip ANSI codes).
+Dispatches notifications on:
+- Device connected (with battery level if available)
 - Device disconnected
 - Low battery alerts (<= 20% and <= 10%)
 """
@@ -10,11 +11,17 @@ Listens to bluetoothctl event stream and dispatches desktop notifications:
 import os
 import re
 import sys
+import pty
+import json
 import time
 import signal
 import subprocess
 
 LOCK_FILE = f"/tmp/bluetooth_events_daemon_{os.getuid()}.pid"
+SHM_FILE = "/dev/shm/waybar_notification.json"
+SHM_ACTIVE = "/dev/shm/waybar_notification_active"
+
+ANSI_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 # Cache of known devices:
 # mac -> {"name": str, "icon": str, "battery": int|None, "connected": bool, "low_alert_level": int}
@@ -34,9 +41,7 @@ def check_single_instance():
         try:
             with open(LOCK_FILE, "r") as f:
                 old_pid = int(f.read().strip())
-            # Check if process is still alive
             os.kill(old_pid, 0)
-            # If alive, exit cleanly
             sys.exit(0)
         except (OSError, ValueError):
             pass
@@ -45,6 +50,9 @@ def check_single_instance():
             f.write(str(os.getpid()))
     except Exception:
         pass
+
+def clean_line(s):
+    return ANSI_RE.sub('', s).replace('\r', '').strip()
 
 def get_symbolic_icon(icon_type, event="connected"):
     if event == "disconnected":
@@ -66,6 +74,25 @@ def get_symbolic_icon(icon_type, event="connected"):
     return "bluetooth-symbolic"
 
 def send_notification(summary, body, icon="bluetooth-symbolic", urgency="normal"):
+    # 1. Waybar Dynamic Island (direct OSD)
+    try:
+        data = {
+            "app": "Bluetooth",
+            "summary": summary,
+            "body": body,
+            "icon": "󰂯",
+            "duration": 3.0,
+            "timestamp": time.time()
+        }
+        with open(SHM_FILE, "w") as f:
+            json.dump(data, f)
+        with open(SHM_ACTIVE, "w") as f:
+            f.write("1")
+        subprocess.run(["pkill", "-SIGUSR1", "-f", "^python3 .*center_status\\.py"], stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+    # 2. Desktop notification (SwayNC history)
     try:
         subprocess.run([
             "notify-send",
@@ -91,8 +118,8 @@ def fetch_device_info(mac):
         battery = None
         connected = False
 
-        for line in out.splitlines():
-            line = line.strip()
+        for raw_line in out.splitlines():
+            line = clean_line(raw_line)
             if line.startswith("Alias:"):
                 name = line.split("Alias:", 1)[1].strip()
             elif line.startswith("Name:") and not name:
@@ -131,8 +158,9 @@ def init_connected_devices():
             stderr=subprocess.DEVNULL,
             timeout=3.0
         )
-        for line in out.splitlines():
-            parts = line.strip().split()
+        for raw_line in out.splitlines():
+            line = clean_line(raw_line)
+            parts = line.split()
             if len(parts) >= 2 and parts[0] == "Device":
                 mac = parts[1]
                 info = fetch_device_info(mac)
@@ -143,7 +171,7 @@ def init_connected_devices():
 
 def handle_connected(mac):
     # Short wait for GATT battery service discovery if applicable
-    time.sleep(0.3)
+    time.sleep(0.4)
     info = fetch_device_info(mac)
     info["connected"] = True
     devices[mac] = info
@@ -196,21 +224,25 @@ def main():
     init_connected_devices()
 
     while running:
+        master = None
         proc = None
         try:
+            master, slave = pty.openpty()
             proc = subprocess.Popen(
                 ["bluetoothctl"],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                text=True,
-                bufsize=1
+                stdin=slave,
+                stdout=slave,
+                stderr=slave,
+                close_fds=True
             )
+            os.close(slave)
 
-            for line in proc.stdout:
+            f = os.fdopen(master, 'r', encoding='utf-8', errors='ignore')
+
+            for raw_line in f:
                 if not running:
                     break
-                line = line.strip()
+                line = clean_line(raw_line)
                 if not line:
                     continue
 
@@ -219,7 +251,6 @@ def main():
                 if m_conn:
                     mac, state = m_conn.group(1), m_conn.group(2)
                     if state == "yes":
-                        # Only notify if state genuinely changed
                         prev_state = devices.get(mac, {}).get("connected", False)
                         if not prev_state:
                             handle_connected(mac)
@@ -256,7 +287,6 @@ def main():
         if running:
             time.sleep(2.0)
 
-    # Cleanup
     if os.path.exists(LOCK_FILE):
         try:
             os.remove(LOCK_FILE)
