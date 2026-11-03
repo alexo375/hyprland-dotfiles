@@ -1,7 +1,8 @@
 configuration{
  modi: "dmenu";
+ case-sensitive: false;
  fixed-num-lines: false;
- show-icons: false;
+ show-icons: true;
  icon-theme: "Icons";
  eh: 1;
  dpi: 100;

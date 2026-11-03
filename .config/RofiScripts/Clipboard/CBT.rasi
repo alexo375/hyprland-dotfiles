@@ -2,11 +2,15 @@
 @import "~/.config/colors/rofifont.rasi"
 @import "~/.config/colors/rofiradius.rasi"
 
+* {
+  font: "JetBrainsMono Nerd Font Propo 12";
+}
+
 window {
-  width: 33em;
-  padding: 0em;
-  border: 0px;         
-  border-color: var(primary);
+  width: 53em;
+  padding: 0.25em;
+  border: 0em;         
+  border-color: transparent;
   border-radius: var(borderradius);
   transparency: "real";
   background-color: var(surface);
@@ -16,7 +20,7 @@ window {
 
 error-message {
   enabled: true;
-  padding: 0.8em;
+  padding: 0.25em;
   background-color: transparent;
   border-color: var(primary);
   border-radius: var(borderradius);
@@ -24,8 +28,7 @@ error-message {
 
 textbox {
   enabled: true;
-  padding: 0.4em 0.54em 0.4em 0.54em;
-  str: "No results!";
+  padding: 0.25em 0.5em;
   text-color: var(error);
   background-color: var(surface-container);
   border-radius: var(buttonradius);
@@ -34,33 +37,33 @@ textbox {
 
 entry {
   hide-cursor-on-empty: true;
-  placeholder: " Search...";
+  placeholder: " Search clipboard...";
   placeholder-color: var(secondary);
   text-color: var(secondary);
   border: 0em;
   border-color: var(primary);
-  padding: 0.4em 0.54em 0.4em 0.54em;
+  padding: 0.25em 0.5em;
   border-radius: var(buttonradius);
   background-color: var(surface-container);
 }
 
 listview {
-  lines: 10;
+  columns: 3;
+  lines: 2;
   margin: 0em;
-  padding: 0.8em 0em 0em 0em;
-  columns: 1;
-  fixed-columns: false;
+  padding: 0.25em 0em 0em 0em;
+  fixed-columns: true;
   background-color: transparent;
   scrollbar: false;
   cycle: false;
+  spacing: 0.25em;
   border: 0em;
-  border-color: var(primary);
 }
 
 mainbox {
   background-color: transparent;
-  spacing: 0em; 
-  padding: 0.8em;
+  spacing: 0.25em; 
+  padding: 0em;
   border-radius: var(borderradius);
   children: [ inputbar, listview ];
 }
@@ -70,64 +73,36 @@ inputbar {
   background-color: transparent;
   children: [ entry ];
   border: 0em;
-  border-color: var(primary);
 }
 
 element {
-  padding: 0.4em 0.54em 0.4em 0.54em;
-  orientation: horizontal;
-  margin: 0.14em;
+  orientation: vertical;
+  padding: 0.25em;
+  spacing: 0em;
   border-radius: var(buttonradius);
-  border: 0em;
+  border: 2px;
+  border-color: transparent;
+  background-color: transparent;
+  children: [ element-icon ];
 }
 
-element normal.normal {
+element normal.normal, element alternate.normal {
   background-color: transparent;
   text-color: var(secondary);
-}
-
-element normal.active {
-  background-color: transparent;
-  text-color: var(secondary);
-}
-
-element normal.urgent {
-  background-color: transparent;
-  text-color: var(secondary);
-}
-
-element alternate.active {
-  background-color: transparent;
-  text-color: var(secondary);
-}
-
-element alternate.normal {
-  background-color: transparent;
-  text-color: var(secondary);
-}
-
-element alternate.urgent {
-  background-color: transparent;
-  text-color: var(secondary);
-}
-
-element-text {
-  background-color: #00000000;
-  text-color: inherit;
-  padding: 0em;
-  vertical-align: 0.5;
-  highlight: bold underline;
 }
 
 element selected.normal {
-  background-color: var(surface-container-highest);
-  text-color: var(secondary);
-  border: 0em;
+  background-color: var(surface-container);
+  text-color: var(on-surface);
   border-color: var(primary);
 }
 
 element-icon {
-  size: 1.6em; 
+  size: 17em; 
+  margin: -3.72em 0em;
+  horizontal-align: 0.5;
+  vertical-align: 0.5;
   background-color: transparent;
   text-color: inherit;
+  border-radius: 4px;
 }
