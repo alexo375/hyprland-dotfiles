@@ -11,11 +11,11 @@ back_label="← Back"
 chosen=$(
 	printf "%s\n" \
 		"$back_label" \
-		"󰑐 Restart Daemons" \
 		" Performance" \
 		" Hyprland Config" \
 		" NixOS Config" \
-		"󰆍 Scripts" |
+		"󰆍 Scripts" \
+		" Restart Daemons" |
 		rofi -dmenu -i -selected-row 1 -config "$HOME/.config/RofiScripts/SystemSettings/S.rasi" \
 			-kb-move-char-back "" -kb-move-char-forward "" -kb-custom-1 "Left" \
 			-kb-accept-entry "Control+j,Control+m,Return,KP_Enter,Right"
@@ -28,10 +28,10 @@ if [ "$rc" -eq 10 ] || [ "$chosen" = "$back_label" ]; then
 fi
 
 case "$chosen" in
-	"󰑐 Restart Daemons") ~/.config/hypr/scripts/session_daemons.sh restart ;;
 	" Performance") ~/.config/RofiScripts/Performance/performance.sh ;;
 	" Hyprland Config") ~/.config/RofiScripts/SystemSettings/hyprland.sh ;;
 	" NixOS Config") ~/.config/RofiScripts/SystemSettings/nixos.sh ;;
 	"󰆍 Scripts") code "$DOTFILES_DIR/.config/hypr/scripts" ;;
+	" Restart Daemons") ~/.config/hypr/scripts/session_daemons.sh restart ;;
 	*) exit 1 ;;
 esac
