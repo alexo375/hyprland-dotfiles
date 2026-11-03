@@ -12,7 +12,7 @@ ACTION="${1:-start}"
 HOME_DIR="${HOME:-/home/alex}"
 
 stop_daemons() {
-    systemctl --user stop cliphist-text cliphist-image wl-clip-persist quickshell 2>/dev/null || true
+    systemctl --user stop cliphist-text cliphist-image wl-clip-persist quickshell media-listener bluetooth-events 2>/dev/null || true
     pkill -f 'wl-paste.*cliphist' 2>/dev/null || true
     pkill -x cliphist 2>/dev/null || true
     pkill -f 'bluetooth_events.py' 2>/dev/null || true
@@ -55,11 +55,11 @@ start_daemons() {
 
     # 6. Event listener scripts
     if ! pgrep -f 'bluetooth_events.py' >/dev/null 2>&1; then
-        nohup python3 "$HOME_DIR/.config/hypr/scripts/bluetooth_events.py" >/dev/null 2>&1 &
+        systemd-run --user --unit=bluetooth-events python3 "$HOME_DIR/.config/hypr/scripts/bluetooth_events.py" >/dev/null 2>&1 || nohup python3 "$HOME_DIR/.config/hypr/scripts/bluetooth_events.py" >/dev/null 2>&1 &
     fi
 
     if ! pgrep -f 'media_listener.py' >/dev/null 2>&1; then
-        nohup python3 "$HOME_DIR/.config/hypr/scripts/media_listener.py" >/dev/null 2>&1 &
+        systemd-run --user --unit=media-listener python3 "$HOME_DIR/.config/hypr/scripts/media_listener.py" >/dev/null 2>&1 || nohup python3 "$HOME_DIR/.config/hypr/scripts/media_listener.py" >/dev/null 2>&1 &
     fi
 
     # 7. Clipboard history watchers (with timeout 5s against deadlocks)
