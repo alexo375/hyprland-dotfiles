@@ -11,6 +11,7 @@ back_label="← Back"
 chosen=$(
 	printf "%s\n" \
 		"$back_label" \
+		"󰑐 Restart Daemons" \
 		" Performance" \
 		" Hyprland Config" \
 		" NixOS Config" \
@@ -27,6 +28,7 @@ if [ "$rc" -eq 10 ] || [ "$chosen" = "$back_label" ]; then
 fi
 
 case "$chosen" in
+	"󰑐 Restart Daemons") ~/.config/hypr/scripts/session_daemons.sh restart ;;
 	" Performance") ~/.config/RofiScripts/Performance/performance.sh ;;
 	" Hyprland Config") ~/.config/RofiScripts/SystemSettings/hyprland.sh ;;
 	" NixOS Config") ~/.config/RofiScripts/SystemSettings/nixos.sh ;;

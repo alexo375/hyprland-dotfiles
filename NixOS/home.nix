@@ -242,8 +242,8 @@ in
     };
   };
 
-  # Экранный регулятор громкости и яркости SwayOSD
-  services.swayosd.enable = true;
+  # Экранный регулятор громкости и яркости SwayOSD (отключен, используется Dynamic Island)
+  services.swayosd.enable = false;
 
   # Эквалайзер и обработка звука EasyEffects
   services.easyeffects.enable = true;

@@ -323,9 +323,8 @@ in
   # Служба печати CUPS
   services.printing.enable = true;
 
-  # Правила Udev для SwayOSD
+  # Правила Udev
   services.udev.packages = with pkgs; [
-    swayosd
   ];
 
   # =========================================================================
