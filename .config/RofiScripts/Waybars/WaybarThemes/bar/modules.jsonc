@@ -136,26 +136,30 @@
 	 "format": "",
    "tooltip": false,
 },
-"clock": {
-  "timezone": "Europe/Moscow",
-  "locale": "ru_RU.UTF-8",
-  "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
-  "format" : " {:%H:%M}",
-  "format-alt" : "󰸗 {:%a %d.%m.%y}", 
+  "clock": {
+    "timezone": "Europe/Moscow",
+    "locale": "ru_RU.UTF-8",
+    "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+    "format": " {:%H:%M, %a, %d %b}", 
     "calendar": {
-    "mode"          : "year",
-"mode-mon-col"  : 3,
-"weeks-pos"     : "right",
-"on-scroll"     : 1,
-"format": {
-"months":     "<span color='#8aa0a3'><b>{}</b></span>",
-"days":       "<span color='#1b1c1c'><b>{}</b></span>",
-"weeks":      "<span color='#727879'><b>W{}</b></span>",
-"weekdays":   "<span color='#4f6264'><b>{}</b></span>",
-"today":      "<span color='#ffffff' background='#4f6264'><b>{}</b></span>"
-  }
-        }, 
-        }, 
+      "mode"          : "year",
+      "mode-mon-col"  : 3,
+      "weeks-pos"     : "right",
+      "on-scroll"     : 1,
+      "format": {
+        "months":     "<b><span font_weight='bold'>{}</span></b>",
+        "days":       "<b>{}</b>",
+        "weeks":      "<span alpha='50%'><b>W{}</b></span>",
+        "weekdays":   "<span alpha='70%'><b>{}</b></span>",
+        "today":      "<span color='#ffffff' background='#3b82f6'><b>{}</b></span>"
+      }
+    },
+    "actions": {
+      "on-click-right": "mode",
+      "on-scroll-up": "shift_up",
+      "on-scroll-down": "shift_down"
+    }
+  }, 
 "network": {
   "tooltip": true,
   "format": "{icon}",
