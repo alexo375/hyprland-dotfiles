@@ -58,7 +58,7 @@ hl.window_rule({
 -- Opacity rules
 hl.window_rule({ match = { class = "code" },                  opacity = "0.95 0.85" })
 hl.window_rule({ match = { class = "org.telegram.desktop" },  opacity = "0.95 0.85" })
-hl.window_rule({ match = { initial_title = "yandex-music" },  opacity = "0.80 0.85" })
+hl.window_rule({ match = { class = "yandex-music" },          opacity = "0.80 0.85" })
 hl.window_rule({ match = { class = "obsidian" },              opacity = "0.95 0.90" })
 
 -- Idle inhibit for all fullscreen windows
