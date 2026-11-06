@@ -16,7 +16,7 @@
     "control-center-preferred-output": "eDP-1",
     "notification-window-width": 500,
     "notification-window-height": -1,
-    "notification-grouping": true,
+    "notification-grouping": false,
     "notification-window-preferred-output": "eDP-1",
     "image-visibility": "when-available",
     "transition-time": 0,

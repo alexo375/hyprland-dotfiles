@@ -62,44 +62,7 @@ in
     "/home/alex/.local/share/flatpak/exports/share"
   ];
 
-  xdg.desktopEntries = {
-    screenshot = {
-      name = "Screenshot";
-      comment = "Screenshot Utility";
-      icon = "applets-screenshooter";
-      exec = "true";
-      terminal = false;
-      noDisplay = true;
-    };
-    telegram = {
-      name = "Telegram";
-      icon = "org.telegram.desktop";
-      exec = "telegram-desktop -- %u";
-      terminal = false;
-      noDisplay = true;
-    };
-    "telegram-desktop" = {
-      name = "Telegram";
-      icon = "org.telegram.desktop";
-      exec = "telegram-desktop -- %u";
-      terminal = false;
-      noDisplay = true;
-    };
-    "telegram desktop" = {
-      name = "Telegram";
-      icon = "org.telegram.desktop";
-      exec = "telegram-desktop -- %u";
-      terminal = false;
-      noDisplay = true;
-    };
-    "Telegram Desktop" = {
-      name = "Telegram";
-      icon = "org.telegram.desktop";
-      exec = "telegram-desktop -- %u";
-      terminal = false;
-      noDisplay = true;
-    };
-  };
+
 
   # =========================================================================
   # 3. Ассоциации типов файлов (MIME) по умолчанию
