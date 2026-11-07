@@ -1,0 +1,133 @@
+{
+  "players": ["yandex-music", "chromium", "firefox"],
+  "use_active_player": true,
+  "fps": 15,
+  "align": "center",
+  "width": 66,
+  "height": 12,
+  "border": false,
+  "bg": "reset",
+  "fg": "reset",
+  "keybinds": {
+    "q;esc": "quit()",
+    "h": "prev()",
+    "l": "next()",
+    " ": "play_pause()"
+  },
+  "layout": [
+    {
+      "type": "container",
+      "direction": "horizontal",
+      "children": [
+        {
+          "type": "cover-art",
+          "width": 24,
+          "height": 12,
+          "resize": "fit",
+          "border": false
+        },
+        {
+          "type": "empty",
+          "size": 3
+        },
+        {
+          "type": "container",
+          "direction": "vertical",
+          "flex": "space-between",
+          "children": [
+            {
+              "type": "container",
+              "direction": "vertical",
+              "children": [
+                {
+                  "type": "label",
+                  "text": "$title",
+                  "align": "left",
+                  "bold": true,
+                  "fg": "{{colors.primary.default.hex}}"
+                },
+                {
+                  "type": "label",
+                  "text": "󰠃 $artists",
+                  "align": "left",
+                  "fg": "{{colors.on_surface.default.hex}}"
+                },
+                {
+                  "type": "label",
+                  "text": "󰀥 $album",
+                  "align": "left",
+                  "fg": "{{colors.on_surface_variant.default.hex}}"
+                }
+              ]
+            },
+            {
+              "type": "container",
+              "height": 1,
+              "direction": "horizontal",
+              "flex": "space-around",
+              "children": [
+                {
+                  "type": "button",
+                  "text": "󰒮",
+                  "action": "prev()",
+                  "fg": "{{colors.secondary.default.hex}}"
+                },
+                {
+                  "type": "button",
+                  "text": "$status-icon",
+                  "action": "play_pause()",
+                  "bold": true,
+                  "fg": "{{colors.primary.default.hex}}"
+                },
+                {
+                  "type": "button",
+                  "text": "󰒭",
+                  "action": "next()",
+                  "fg": "{{colors.secondary.default.hex}}"
+                }
+              ]
+            },
+            {
+              "type": "container",
+              "direction": "vertical",
+              "children": [
+                {
+                  "type": "progress",
+                  "direction": "horizontal",
+                  "progress": {
+                    "char": "━",
+                    "fg": "{{colors.primary.default.hex}}"
+                  },
+                  "empty": {
+                    "char": "─",
+                    "fg": "{{colors.outline_variant.default.hex}}"
+                  }
+                },
+                {
+                  "type": "container",
+                  "height": 1,
+                  "direction": "horizontal",
+                  "flex": "space-between",
+                  "children": [
+                    {
+                      "type": "label",
+                      "text": "$position",
+                      "align": "left",
+                      "fg": "{{colors.on_surface_variant.default.hex}}"
+                    },
+                    {
+                      "type": "label",
+                      "text": "$length",
+                      "align": "right",
+                      "fg": "{{colors.on_surface_variant.default.hex}}"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

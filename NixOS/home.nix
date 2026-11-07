@@ -318,6 +318,7 @@ in
     asciiquarium-transparent
     cbonsai
     cava
+    fum
     playerctl
     clock-rs
     nitch

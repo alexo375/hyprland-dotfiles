@@ -97,5 +97,10 @@ output_path = '~/.config/lazydocker/config.yml'
 input_path = '~/.config/matugen/templates/newt_colors.fish'
 output_path = '~/.config/fish/conf.d/newt_colors.fish'
 
+[templates.fum]
+input_path = '~/.config/matugen/templates/fum.jsonc'
+output_path = '~/.config/fum/config.jsonc'
+
+
 
 
