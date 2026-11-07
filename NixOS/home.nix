@@ -136,6 +136,17 @@ in
     "video/mpeg" = [ "mpv.desktop" ];
   };
 
+  # Кастомный ярлык Steam с масштабированием под HiDPI экраны
+  xdg.desktopEntries.steam = {
+    name = "Steam";
+    exec = "env STEAM_FORCE_DESKTOPUI_SCALING=1.5 GDK_SCALE=2 GDK_DPI_SCALE=0.75 steam -forcedesktopscaling 1.5 %U";
+    terminal = false;
+    type = "Application";
+    icon = "steam";
+    categories = [ "Game" "Network" ];
+    mimeType = [ "x-scheme-handler/steam" "x-scheme-handler/steamlink" ];
+  };
+
   # =========================================================================
   # 4. Браузеры и переменные сессии
   # =========================================================================
@@ -313,7 +324,6 @@ in
     pkgs-unstable.qt6Packages.qt6ct
     qt6.qtwayland
     qt6.qtdeclarative
-    (python3.withPackages (ps: with ps; [ pyqt6 ]))
     wtype
 
     # Терминальные утилиты и заставки
@@ -380,8 +390,10 @@ in
     vscode
 
     # Python окружение
-    python3
-    python3Packages.pip
-    python3Packages.virtualenv
+    (python3.withPackages (ps: with ps; [
+      pyqt6
+      pip
+      virtualenv
+    ]))
   ];
 }

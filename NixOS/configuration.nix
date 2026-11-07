@@ -56,6 +56,7 @@ in
 
   boot.kernelModules = [
     "kvm-intel"
+    "uinput"
   ];
 
   # Блэклист термодрайверов Intel DTT для ноутбука Huawei MateBook 14s (2022).
@@ -320,11 +321,22 @@ in
     };
   };
 
+  # Игровая платформа Steam и Proton-GE
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
+    extraCompatPackages = with pkgs; [
+      proton-ge-bin
+    ];
+  };
+
   # Служба печати CUPS
   services.printing.enable = true;
 
-  # Правила Udev
+  # Правила Udev для контроллеров и Steam
   services.udev.packages = with pkgs; [
+    steam-devices-udev-rules
   ];
 
   # =========================================================================
