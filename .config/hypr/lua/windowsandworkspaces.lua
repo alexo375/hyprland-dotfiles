@@ -60,6 +60,8 @@ hl.window_rule({ match = { class = "code" },                  opacity = "0.95 0.
 hl.window_rule({ match = { class = "org.telegram.desktop" },  opacity = "0.95 0.85" })
 hl.window_rule({ match = { class = "yandex-music" },          opacity = "0.80 0.85" })
 hl.window_rule({ match = { class = "obsidian" },              opacity = "0.95 0.90" })
+hl.window_rule({ match = { class = "org.hypr.qml-clipboard" }, float = true, center = true, pin = true })
+hl.window_rule({ match = { class = "org.hypr.qml-emoji" },     float = true, center = true, pin = true })
 
 -- Idle inhibit for all fullscreen windows
 hl.window_rule({ match = { class = ".*" }, idle_inhibit = "fullscreen" })

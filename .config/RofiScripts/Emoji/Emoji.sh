@@ -1,21 +1,18 @@
-#! /bin/sh
+#!/usr/bin/env bash
 
-: "${LC_ALL:=C.UTF-8}"
-: "${LANG:=C.UTF-8}"
-export LC_ALL LANG
+# QML Emoji Picker launcher for Hyprland
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if ! command -v rofimoji >/dev/null 2>&1; then
-	notify-send "Emoji picker" "rofimoji is not installed"
-	exit 1
+# Ensure QML imports are found
+export QML2_IMPORT_PATH="/nix/store/3vd002px7rdr8cmr1wxh3628fpkrbhg2-qtdeclarative-6.11.1/lib/qt-6/qml:${QML2_IMPORT_PATH}"
+
+# Pick Python interpreter with PyQt6 available
+if python3 -c "import PyQt6.QtQuick" 2>/dev/null; then
+    PY_BIN="python3"
+elif [ -x "/nix/store/867ngqlqx6278w934l1km5kycxd1srpf-python3-3.14.6-env/bin/python3" ]; then
+    PY_BIN="/nix/store/867ngqlqx6278w934l1km5kycxd1srpf-python3-3.14.6-env/bin/python3"
+else
+    PY_BIN="python3"
 fi
 
-rofi \
-	-modi "emoji:rofimoji --action copy --prompt '󰞅 '" \
-	-show emoji \
-	-config "$HOME/.config/RofiScripts/SystemSettings/S.rasi" \
-	-lines 8 \
-	-theme-str 'configuration { fixed-num-lines: true; } listview { lines: 8; } window { width: 24em; height: 82.5%; }' \
-	-kb-move-char-back "" \
-	-kb-move-char-forward "" \
-	-kb-custom-1 "Left" \
-	-kb-accept-entry "Control+j,Control+m,Return,KP_Enter,Right"
+exec "$PY_BIN" "$SCRIPT_DIR/Emoji.py" "$@"

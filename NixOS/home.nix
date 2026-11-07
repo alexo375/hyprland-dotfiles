@@ -312,6 +312,9 @@ in
     dconf-editor
     pkgs-unstable.qt6Packages.qt6ct
     qt6.qtwayland
+    qt6.qtdeclarative
+    (python3.withPackages (ps: with ps; [ pyqt6 ]))
+    wtype
 
     # Терминальные утилиты и заставки
     ani-cli
