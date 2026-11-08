@@ -12,7 +12,7 @@ ACTION="${1:-start}"
 HOME_DIR="${HOME:-/home/alex}"
 
 stop_daemons() {
-    systemctl --user stop cliphist-text cliphist-image wl-clip-persist quickshell media-listener bluetooth-events 2>/dev/null || true
+    systemctl --user stop cliphist-text cliphist-image wl-clip-persist quickshell quickshell-tools media-listener bluetooth-events 2>/dev/null || true
     pkill -f 'wl-paste.*cliphist' 2>/dev/null || true
     pkill -x cliphist 2>/dev/null || true
     pkill -f 'bluetooth_events.py' 2>/dev/null || true
@@ -21,6 +21,8 @@ stop_daemons() {
     pkill -f 'awww-daemon' 2>/dev/null || true
     pkill -f 'quickshell.*overview' 2>/dev/null || true
     pkill -f 'qs -p.*/overview' 2>/dev/null || true
+    pkill -f 'quickshell.*tools' 2>/dev/null || true
+    pkill -f 'qs -p.*/tools' 2>/dev/null || true
     pkill -f 'waybar' 2>/dev/null || true
     pkill -f 'wl-clip-persist' 2>/dev/null || true
     pkill -f 'polkit-gnome-authentication-agent-1' 2>/dev/null || true
@@ -28,9 +30,13 @@ stop_daemons() {
 }
 
 start_daemons() {
-    # 1. QuickShell Overview
+    # 1. QuickShell Overview & Tools
     if ! pgrep -f 'quickshell.*overview' >/dev/null 2>&1 && ! pgrep -f 'qs -p.*/overview' >/dev/null 2>&1; then
         systemd-run --user --unit=quickshell qs -p "$HOME_DIR/.config/quickshell/overview" -n >/dev/null 2>&1 || nohup qs -p "$HOME_DIR/.config/quickshell/overview" -n >/dev/null 2>&1 &
+    fi
+
+    if ! pgrep -f 'quickshell.*tools' >/dev/null 2>&1 && ! pgrep -f 'qs -p.*/tools' >/dev/null 2>&1; then
+        systemd-run --user --unit=quickshell-tools qs -p "$HOME_DIR/.config/quickshell/tools" -n >/dev/null 2>&1 || nohup qs -p "$HOME_DIR/.config/quickshell/tools" -n >/dev/null 2>&1 &
     fi
 
     # 2. Wallpaper daemon (awww)

@@ -203,6 +203,7 @@ Window {
                         clip: true
                         spacing: 12
                         model: root.imageList
+                        reuseItems: true
 
                         delegate: Rectangle {
                             id: imgDelegate
@@ -232,6 +233,8 @@ Window {
                                         width: parent.width
                                         height: parent.height
                                         source: modelData.thumb_url
+                                        sourceSize.width: 540
+                                        sourceSize.height: 304
                                         fillMode: Image.PreserveAspectFit
                                         asynchronous: true
                                         cache: true
@@ -305,6 +308,7 @@ Window {
                         clip: true
                         spacing: 8
                         model: root.textList
+                        reuseItems: true
 
                         section.property: "section_date"
                         section.criteria: ViewSection.FullString

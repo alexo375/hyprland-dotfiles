@@ -111,7 +111,7 @@ class ClipboardBackend(QObject):
         self.all_images = []
         self.all_texts = []
         self.meta_cache = self._load_meta_cache()
-        self.size_to_dt = self._index_screenshots()
+        self.size_to_dt = None
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
 
     def _load_meta_cache(self):
@@ -131,22 +131,36 @@ class ClipboardBackend(QObject):
         except Exception:
             pass
 
-    def _index_screenshots(self):
+    def _get_size_to_dt(self):
+        if self.size_to_dt is not None:
+            return self.size_to_dt
         size_map = {}
         if SHOTS_DIR.exists():
             try:
+                count = 0
                 for f in sorted(SHOTS_DIR.glob("*.png"), key=lambda p: p.stat().st_mtime, reverse=True):
                     m = re.match(r"(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})", f.stem)
                     if m:
                         sz = f.stat().st_size
                         if sz not in size_map:
                             size_map[sz] = " ".join(m.groups())
+                    count += 1
+                    if count >= 60:
+                        break
             except Exception:
                 pass
-        return size_map
+        self.size_to_dt = size_map
+        return self.size_to_dt
 
     def decode_and_get_dt(self, cid):
         dest = THUMB_DIR / f"{cid}.png"
+        cid_str = str(cid)
+
+        # Fast path: already decoded & cached in metadata
+        cached_dt = self.meta_cache.get(cid_str)
+        if dest.exists() and cached_dt:
+            return cached_dt
+
         if not dest.exists():
             try:
                 proc = subprocess.run(
@@ -156,16 +170,15 @@ class ClipboardBackend(QObject):
                 )
                 dest.write_bytes(proc.stdout)
             except Exception:
-                return ""
+                return cached_dt or ""
 
-        cid_str = str(cid)
-        if cid_str in self.meta_cache:
-            return self.meta_cache[cid_str]
+        if cached_dt:
+            return cached_dt
 
         dt = ""
         try:
             sz = dest.stat().st_size
-            dt = self.size_to_dt.get(sz, "")
+            dt = self._get_size_to_dt().get(sz, "")
             if not dt:
                 from datetime import datetime
                 mtime = dest.stat().st_mtime
@@ -207,13 +220,15 @@ class ClipboardBackend(QObject):
                 clean = " ".join(content.split())
                 texts_raw.append((txt_rank, cid, clean, line))
 
-        # 1. Resolve dates & thumbnails for images in parallel
-        cids_img = [item[1] for item in images_raw]
-        dt_results = list(self.executor.map(self.decode_and_get_dt, cids_img))
+        # 1. Resolve dates & thumbnails for top 25 images immediately
+        MAX_INITIAL_IMAGES = 25
+        initial_images_raw = images_raw[:MAX_INITIAL_IMAGES]
+        cids_initial = [item[1] for item in initial_images_raw]
+        dt_results = list(self.executor.map(self.decode_and_get_dt, cids_initial))
 
         # 2. Build anchor map from known image timestamps
         anchors = {}
-        for (rank, cid, size, ext, dims, line), dt_str in zip(images_raw, dt_results):
+        for (rank, cid, size, ext, dims, line), dt_str in zip(initial_images_raw, dt_results):
             if dt_str:
                 try:
                     anchors[int(cid)] = datetime.strptime(dt_str, "%Y %m %d %H %M")
@@ -289,13 +304,16 @@ class ClipboardBackend(QObject):
 
         # 4. Format images
         images = []
-        for (rank, cid, size, ext, dims, line), dt_str in zip(images_raw, dt_results):
+        for idx, (rank, cid, size, ext, dims, line) in enumerate(images_raw):
             thumb_path = str(THUMB_DIR / f"{cid}.png")
-            try:
-                img_dt = datetime.strptime(dt_str, "%Y %m %d %H %M")
-                disp_dt = img_dt.strftime("%Y-%m-%d %H:%M")
-            except Exception:
-                disp_dt = ""
+            dt_str = dt_results[idx] if idx < len(dt_results) else self.meta_cache.get(str(cid), "")
+            disp_dt = ""
+            if dt_str:
+                try:
+                    img_dt = datetime.strptime(dt_str, "%Y %m %d %H %M")
+                    disp_dt = img_dt.strftime("%Y-%m-%d %H:%M")
+                except Exception:
+                    disp_dt = ""
             images.append({
                 "cid": cid,
                 "rank": rank,
@@ -314,6 +332,20 @@ class ClipboardBackend(QObject):
         self.all_texts = texts
         self.last_query = ""
         self.dataLoaded.emit(images, texts, len(images), len(texts))
+
+        # 5. Decode remaining background images lazily without blocking UI
+        if len(images_raw) > MAX_INITIAL_IMAGES:
+            remaining_cids = [item[1] for item in images_raw[MAX_INITIAL_IMAGES:]]
+            self.executor.submit(self._decode_batch_background, remaining_cids)
+
+    def _decode_batch_background(self, cids):
+        changed = False
+        for cid in cids:
+            dt = self.decode_and_get_dt(cid)
+            if dt:
+                changed = True
+        if changed:
+            self._save_meta_cache()
 
     @pyqtSlot(str)
     def search(self, query):
@@ -391,26 +423,28 @@ class ClipboardBackend(QObject):
 
 
 def main():
-    # Kill any existing instance to act as a toggle
-    my_pid = os.getpid()
-    subprocess.run(
-        f"pgrep -f 'Clipboard.py' | grep -v '^{my_pid}$' | xargs -r kill -9",
-        shell=True
-    )
+    # Toggle behavior using lightweight PID file
+    pid_file = Path(f"/tmp/clipboard-qml-{os.getuid()}.pid")
+    if pid_file.exists():
+        try:
+            old_pid = int(pid_file.read_text().strip())
+            if old_pid != os.getpid():
+                try:
+                    os.kill(old_pid, 9)
+                    pid_file.unlink(missing_ok=True)
+                    sys.exit(0)
+                except ProcessLookupError:
+                    pass
+        except Exception:
+            pass
+    pid_file.write_text(str(os.getpid()))
 
     app = QGuiApplication(sys.argv)
     app.setApplicationName("org.hypr.qml-clipboard")
     app.setDesktopFileName("org.hypr.qml-clipboard")
 
     engine = QQmlApplicationEngine()
-    import glob
-    qml_paths = ["/nix/store/3vd002px7rdr8cmr1wxh3628fpkrbhg2-qtdeclarative-6.11.1/lib/qt-6/qml"]
-    for p in glob.glob("/nix/store/*-qtdeclarative-*/lib/qt-6/qml"):
-        if p not in qml_paths:
-            qml_paths.append(p)
-    for p in qml_paths:
-        if os.path.isdir(p):
-            engine.addImportPath(p)
+    engine.addImportPath("/nix/store/3vd002px7rdr8cmr1wxh3628fpkrbhg2-qtdeclarative-6.11.1/lib/qt-6/qml")
 
     backend = ClipboardBackend(app)
     colors = get_matugen_colors()
@@ -422,10 +456,13 @@ def main():
     engine.load(QUrl.fromLocalFile(str(qml_file)))
 
     if not engine.rootObjects():
+        pid_file.unlink(missing_ok=True)
         sys.exit(1)
 
-    # Initial async load of data
-    backend.load_history()
+    # Initial async load of data on the first tick of Qt event loop so window shows immediately
+    from PyQt6.QtCore import QTimer
+    QTimer.singleShot(0, backend.load_history)
+    app.aboutToQuit.connect(lambda: pid_file.unlink(missing_ok=True))
 
     sys.exit(app.exec())
 
