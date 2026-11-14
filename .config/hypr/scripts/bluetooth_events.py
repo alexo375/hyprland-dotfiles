@@ -74,7 +74,7 @@ def get_symbolic_icon(icon_type, event="connected"):
     return "bluetooth-symbolic"
 
 def send_notification(summary, body, icon="bluetooth-symbolic", urgency="normal"):
-    # 1. Waybar Dynamic Island (direct OSD)
+    # Waybar Dynamic Island (direct OSD only — no popups)
     try:
         data = {
             "app": "Bluetooth",
@@ -89,20 +89,6 @@ def send_notification(summary, body, icon="bluetooth-symbolic", urgency="normal"
         with open(SHM_ACTIVE, "w") as f:
             f.write("1")
         subprocess.run(["pkill", "-SIGUSR1", "-f", "center_status\\.py"], stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
-
-    # 2. Desktop notification (transient - do not accumulate in SwayNC history)
-    try:
-        subprocess.run([
-            "notify-send",
-            "-a", "Bluetooth",
-            "-u", urgency,
-            "-i", icon,
-            "-h", "boolean:transient:true",
-            summary,
-            body
-        ], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
         pass
 

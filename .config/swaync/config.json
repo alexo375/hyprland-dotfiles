@@ -70,8 +70,8 @@
             "state": "ignored",
             "app-name": "^(Media|playerctl)$"
         },
-        "bluetooth-transient": {
-            "state": "transient",
+        "bluetooth-ignore": {
+            "state": "ignored",
             "app-name": "^(Bluetooth|bluetooth|blueman.*)$"
         },
         "antigravity-ignore-app": {
