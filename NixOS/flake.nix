@@ -8,13 +8,16 @@
     # Нестабильный канал для свежих версий приложений
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # Канал для инструментов VPN (Amnezia, Throne)
+    # Канал для инструментов VPN
     nixpkgs-vpn.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # ИИ-агенты и CLI-инструменты (изолированный набор)
+    # ИИ-агенты и CLI-инструменты
     nixpkgs-agents.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # Основные CLI утилиты (Yazi, Eza, Lazygit)
+    # Репозиторий со свежими ИИ агентами
+    nixpkgs-llm-agents.url = "github:numtide/llm-agents.nix";
+
+    # Основные CLI утилиты
     nixpkgs-cli.url = "github:nixos/nixpkgs/nixos-unstable";
 
     # Аппаратные профили оборудования под ноутбуки и Intel
@@ -49,6 +52,7 @@
       nixpkgs-unstable,
       nixpkgs-vpn,
       nixpkgs-agents,
+      nixpkgs-llm-agents,
       nixpkgs-cli,
       nixos-hardware,
       hyprland,
@@ -67,6 +71,10 @@
       agentPkgs = import nixpkgs-agents {
         inherit system;
         config.allowUnfree = true;
+        # Мердж сюда же репозитория со свежими LLM агентами
+        overlays = [
+          (final: prev: nixpkgs-llm-agents.packages.${system})
+        ];
       };
       cliPkgs = import nixpkgs-cli {
         inherit system;

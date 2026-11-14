@@ -72,28 +72,18 @@ hl.window_rule({
     workspace = "special:magic silent",
     float = true,
     opacity = "0.85 0.75",
-    size = { 800, 600 },
-    move = { 105, 285 },
-})
-
-hl.window_rule({
-    match = { class = "AmneziaVPN" },
-    workspace = "special:magic silent",
-    float = true,
-    opacity = "0.85 0.75",
-    size = { 509, 752 },
-    move = { 1052, 219 },
+    size = { 977, 828 },
+    move = { 352, 174 },
 })
 
 -- Dragon-drop (pinned and floating)
 hl.window_rule({ match = { class = "dragon" }, float = true, pin = true })
 hl.window_rule({ match = { title = "dragon" }, float = true, pin = true })
 
--- Include local user-saved window rules if present
-local home = os.getenv("HOME") or "/home/alex"
-local local_rules_file = home .. "/.config/hypr/lua/windows-local.lua"
-local f = io.open(local_rules_file, "r")
-if f then
-    f:close()
-    pcall(dofile, local_rules_file)
-end
+-- Telegram Desktop floating window rule
+hl.window_rule({
+    match = { class = "^(org\\.telegram\\.desktop)$" },
+    float = true,
+    size = { 470, 632 },
+    move = { 605, 276 },
+})

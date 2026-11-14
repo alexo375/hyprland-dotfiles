@@ -101,6 +101,11 @@ output_path = '~/.config/fish/conf.d/newt_colors.fish'
 input_path = '~/.config/matugen/templates/fum.jsonc'
 output_path = '~/.config/fum/config.jsonc'
 
+[templates.nvim]
+input_path = '~/.config/matugen/templates/nvim-colors.lua'
+output_path = '~/.config/nvim/lua/colors/matugen.lua'
+
+
 
 
 

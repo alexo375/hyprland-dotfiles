@@ -42,7 +42,7 @@ with open("/dev/shm/waybar_notification.json", "w") as f:
 ' "$summary" "$body" "$icon" "$duration" 2>/dev/null || true
 
     touch /dev/shm/waybar_notification_active 2>/dev/null || true
-    pkill -SIGUSR1 -f "^python3 .*center_status\.py" 2>/dev/null || true
+    pkill -SIGUSR1 -f "center_status\.py" 2>/dev/null || true
 }
 
 get_current_target() {
@@ -120,7 +120,7 @@ action_switch() {
 
     local body="$friendly_name"
     [ -n "$track" ] && body="${friendly_name}"$'\n'"${status} • ${track}"
-    send_island_notification "Media Source" "$body" "󰝚" 2.0
+    send_island_notification "Media Source" "$body" "󰝚" 3.5
 }
 
 show_seek_osd() {
@@ -152,7 +152,7 @@ with open("/dev/shm/waybar_notification_active", "w") as f:
     f.write("1")
 ' "$player" 2>/dev/null || true
 
-    pkill -SIGUSR1 -f "^python3 .*center_status\.py" 2>/dev/null || true
+    pkill -SIGUSR1 -f "center_status\.py" 2>/dev/null || true
 }
 
 action_cmd() {

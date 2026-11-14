@@ -76,6 +76,17 @@ PanelWindow {
         }
     }
 
+    Process {
+        id: metaSyncProc
+        command: ["python3", "/home/alex/.config/quickshell/tools/sync_clipboard_meta.py"]
+        onExited: (code, status) => {
+            metaCacheFile.reload();
+            cliphistProc.rawLines = [];
+            cliphistProc.running = false;
+            cliphistProc.running = true;
+        }
+    }
+
     // Background process to run cliphist list
     Process {
         id: cliphistProc
@@ -95,9 +106,8 @@ PanelWindow {
     }
 
     function loadHistory() {
-        cliphistProc.rawLines = [];
-        cliphistProc.running = false;
-        cliphistProc.running = true;
+        metaSyncProc.running = false;
+        metaSyncProc.running = true;
     }
 
     function parseHistory(lines) {
@@ -687,19 +697,10 @@ PanelWindow {
                 }
             }
 
-            // --- FOOTER ROW ---
-            RowLayout {
+            // Footer spacing
+            Item {
                 Layout.fillWidth: true
-                height: 24
-                spacing: 12
-
-                Text {
-                    text: (root.activeColumn === 0 ? "← IMAGES" : "TEXT →") + "  ·  Enter: Copy  ·  Del: Delete  ·  Esc: Close"
-                    font.pixelSize: 11
-                    color: Theme.outline || "#8d928c"
-                }
-
-                Item { Layout.fillWidth: true }
+                height: 8
             }
         }
     }

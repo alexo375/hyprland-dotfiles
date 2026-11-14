@@ -350,10 +350,19 @@ in
       amneziawg-tools
       throne
     ])
-    # Инструменты ИИ и агенты (фиксированные версии)
+    # Инструменты ИИ и агенты
     ++ (with pkgs-agents; [
-      codex
+      # antigravity-ide
       antigravity-cli
+      codex
+      claude-code
+      cursor-cli
+      opencode
+      # qwen-code
+
+      # из llm-agents
+      # kimi-code
+      gemini-cli
     ])
     # Нестабильные пакеты
     ++ (with pkgs-unstable; [
@@ -412,6 +421,7 @@ in
       jq
       pkgs-cli.lazydocker
       pkgs-cli.lazygit
+      pkgs-cli.sqlit-tui
       micro
       neo
       nixfmt

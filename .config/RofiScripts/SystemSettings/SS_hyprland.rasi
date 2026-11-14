@@ -1,6 +1,6 @@
 @import "~/.config/RofiScripts/SystemSettings/SS.rasi"
 
 listview {
-  lines: 10;
-  scrollbar: true;
+  lines: 14;
+  scrollbar: false;
 }

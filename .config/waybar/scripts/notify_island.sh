@@ -15,8 +15,12 @@ if [[ "$(swaync-client -D 2>/dev/null)" == "true" ]]; then
     exit 0
 fi
 
-# Игнорируем регулировку громкости и яркости в Dynamic Island
+# Игнорируем регулировку громкости и яркости в Dynamic Island, а также спам Antigravity
 if [[ "$SUMMARY" =~ ^(Brightness|Volume|Muted|Mic\ Muted|Mic\ Unmuted) ]]; then
+    exit 0
+fi
+
+if [[ "$APP" =~ (?i)(antigravity|agy) || "$SUMMARY" =~ (?i)(antigravity|agy) ]]; then
     exit 0
 fi
 

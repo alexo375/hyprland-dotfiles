@@ -88,17 +88,18 @@ def send_notification(summary, body, icon="bluetooth-symbolic", urgency="normal"
             json.dump(data, f)
         with open(SHM_ACTIVE, "w") as f:
             f.write("1")
-        subprocess.run(["pkill", "-SIGUSR1", "-f", "^python3 .*center_status\\.py"], stderr=subprocess.DEVNULL)
+        subprocess.run(["pkill", "-SIGUSR1", "-f", "center_status\\.py"], stderr=subprocess.DEVNULL)
     except Exception:
         pass
 
-    # 2. Desktop notification (SwayNC history)
+    # 2. Desktop notification (transient - do not accumulate in SwayNC history)
     try:
         subprocess.run([
             "notify-send",
             "-a", "Bluetooth",
             "-u", urgency,
             "-i", icon,
+            "-h", "boolean:transient:true",
             summary,
             body
         ], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

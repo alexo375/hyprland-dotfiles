@@ -7,7 +7,7 @@ local programs = {
     fileManager = 'kitty -e "yazi"',
     menu        = "rofi -show drun -ml-row-left ScrollUp -ml-row-right ScrollDown -ml-row-up ScrollLeft -ml-row-down ScrollRight",
     browser     = "firefox",
-    editor      = "code",
+    editor      = "kitty -e nvim",
 }
 
 return programs

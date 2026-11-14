@@ -5,4 +5,4 @@
 export LC_ALL LANG
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/hyprland-dotfiles}"
-exec code "$DOTFILES_DIR/.config/hypr/scripts"
+exec "$DOTFILES_DIR/.config/hypr/scripts/edit_config.sh" "$DOTFILES_DIR/.config/hypr/scripts"

@@ -5,6 +5,7 @@
 export LC_ALL LANG
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/hyprland-dotfiles}"
+EDIT_CMD="$HOME/.config/hypr/scripts/edit_config.sh"
 
 back_label="← Back"
 
@@ -31,7 +32,7 @@ case "$chosen" in
 	" Performance") ~/.config/RofiScripts/Performance/performance.sh ;;
 	" Hyprland Config") ~/.config/RofiScripts/SystemSettings/hyprland.sh ;;
 	" NixOS Config") ~/.config/RofiScripts/SystemSettings/nixos.sh ;;
-	"󰆍 Scripts") code "$DOTFILES_DIR/.config/hypr/scripts" ;;
+	"󰆍 Scripts") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/scripts" ;;
 	" Restart Daemons") ~/.config/hypr/scripts/session_daemons.sh restart ;;
 	*) exit 1 ;;
 esac

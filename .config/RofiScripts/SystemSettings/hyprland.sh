@@ -4,26 +4,27 @@
 : "${LANG:=C.UTF-8}"
 export LC_ALL LANG
 
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/hyprland-dotfiles}"
+EDIT_CMD="$HOME/.config/hypr/scripts/edit_config.sh"
+
 back_label="← Back"
 
 chosen=$(
 	printf "%s\n" \
 		"$back_label" \
+		" Master Config" \
 		"󱓞 Autostart" \
-		"󰪫 Environment" \
-		"󰍽 Input" \
+		"󰍹 Monitors" \
+		"󰍽 Input & Keyboard" \
 		"󰌌 Keybindings" \
 		" Look and Feel" \
-		"󰍹 Monitors" \
-		" Permissions" \
-		" Programs" \
-		" Plugins" \
 		" Window Rules" \
-		"󱂬 Auto Window Rules" \
+		"󱂬 Workspaces" \
+		"󰪫 Environment" \
+		" Default Programs" \
+		" Permissions" \
 		"󰥔 Idle Timers" \
-		"󰌾 Lockscreen" \
-		"󰥛 Animations (Variables!)" \
-		"󰘇 Decoration (Variables!)" |
+		"󰌾 Lockscreen" |
 		rofi -dmenu -i -selected-row 1 -config "$HOME/.config/RofiScripts/SystemSettings/S_hyprland.rasi" -kb-move-char-back "" -kb-move-char-forward "" -kb-custom-1 "Left" -kb-accept-entry "Control+j,Control+m,Return,KP_Enter,Right"
 )
 rc=$?
@@ -34,20 +35,18 @@ if [ "$rc" -eq 10 ] || [ "$chosen" = "$back_label" ]; then
 fi
 
 case "$chosen" in
-   "󱓞 Autostart") code ~/.config/hypr/lua/autostart.lua ;;
-   "󰪫 Environment") code ~/.config/hypr/lua/environment.lua ;;
-   "󰍽 Input") code ~/.config/hypr/lua/input.lua ;;
-   "󰌌 Keybindings") code ~/.config/hypr/lua/keybinds.lua ;;
-   " Look and Feel") code ~/.config/hypr/lua/lookandfeel.lua ;;
-   "󰍹 Monitors") code ~/.config/hypr/lua/monitors.lua ;;
-   " Permissions") code ~/.config/hypr/lua/permissions.lua ;;
-   " Programs") code ~/.config/hypr/lua/programs.lua ;;
-   " Plugins") code ~/.config/hypr/hyprland.lua ;;
-   " Window Rules") code ~/.config/hypr/lua/windowsandworkspaces.lua ;;
-   "󱂬 Auto Window Rules") code ~/.config/hypr/lua/windows-local.lua ;;
-   "󰥔 Idle Timers") code ~/.config/hypr/hypridle.conf ;;
-   "󰌾 Lockscreen") code ~/.config/hypr/hyprlock.conf ;;
-   "󰥛 Animations (Variables!)") code ~/.config/hypr/lua/lookandfeel.lua ;;
-   "󰘇 Decoration (Variables!)") code ~/.config/hypr/lua/lookandfeel.lua ;;
+   " Master Config") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/hyprland.lua" ;;
+   "󱓞 Autostart") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/lua/autostart.lua" ;;
+   "󰍹 Monitors") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/lua/monitors.lua" ;;
+   "󰍽 Input & Keyboard") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/lua/input.lua" ;;
+   "󰌌 Keybindings") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/lua/keybinds.lua" ;;
+   " Look and Feel") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/lua/lookandfeel.lua" ;;
+   " Window Rules") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/lua/windowsandworkspaces.lua" ;;
+   "󱂬 Workspaces") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/lua/workspaces.lua" ;;
+   "󰪫 Environment") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/lua/environment.lua" ;;
+   " Default Programs") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/lua/programs.lua" ;;
+   " Permissions") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/lua/permissions.lua" ;;
+   "󰥔 Idle Timers") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/hypridle.conf" ;;
+   "󰌾 Lockscreen") "$EDIT_CMD" "$DOTFILES_DIR/.config/hypr/hyprlock.conf" ;;
    *) exit 1 ;;
 esac

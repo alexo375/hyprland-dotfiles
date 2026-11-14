@@ -80,10 +80,10 @@ in
     "image/heif" = [ "imv.desktop" ];
 
     # Текст и исходный код
-    "text/plain" = [ "code.desktop" ];
-    "text/css" = [ "code.desktop" ];
-    "application/x-shellscript" = [ "code.desktop" ];
-    "application/x-zerosize" = [ "code.desktop" ];
+    "text/plain" = [ "nvim.desktop" ];
+    "text/css" = [ "nvim.desktop" ];
+    "application/x-shellscript" = [ "nvim.desktop" ];
+    "application/x-zerosize" = [ "nvim.desktop" ];
     "text/html" = [ "firefox.desktop" ];
 
     # Браузер и протоколы ссылок
@@ -165,7 +165,7 @@ in
   home.sessionVariables = {
     BROWSER = "firefox";
     EDITOR = "nvim";
-    VISUAL = "code --wait";
+    VISUAL = "nvim";
     JAVA_HOME = "${pkgs.jdk21}/lib/openjdk";
     # Цветовая схема для TUI-утилит на базе библиотеки newt (nmtui, whiptail),
     # устраняющая проблемы низкой контрастности дефолтной серо-красной палитры
@@ -305,9 +305,9 @@ in
 
   programs.home-manager.enable = true;
 
-  # Пользовательские скрипты из misc/bin в ~/.local/bin
+  # Пользовательские скрипты из .local/bin в ~/.local/bin
   home.file.".local/bin" = {
-    source = ../misc/bin;
+    source = ../.local/bin;
     recursive = true;
   };
 

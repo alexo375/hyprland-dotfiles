@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Скрипт аварийного восстановления экрана блокировки (rescue lock).
-# Применяется при зависании hyprlock или при входе через другой TTY (через бинарник misc/bin/hyprlock-rescue).
+# Применяется при зависании hyprlock или при входе через другой TTY (через бинарник ~/.local/bin/hyprlock-rescue).
 # Восстанавливает переменные окружения сессии Hyprland, перезапускает hypridle и запускает hyprlock.
 
 uid="$(id -u)"

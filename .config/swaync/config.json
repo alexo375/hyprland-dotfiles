@@ -70,6 +70,18 @@
             "state": "ignored",
             "app-name": "^(Media|playerctl)$"
         },
+        "bluetooth-transient": {
+            "state": "transient",
+            "app-name": "^(Bluetooth|bluetooth|blueman.*)$"
+        },
+        "antigravity-ignore-app": {
+            "state": "ignored",
+            "app-name": ".*(?i)(antigravity|agy).*"
+        },
+        "antigravity-ignore-summary": {
+            "state": "ignored",
+            "summary": ".*(?i)(antigravity|agy).*"
+        },
         "mute-all-popups": {
             "state": "muted",
             "app-name": ".*"
