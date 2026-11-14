@@ -372,6 +372,7 @@ in
     ++ [
       (pkgs.callPackage ./pkgs/ktalk.nix { })
       (pkgs.callPackage ./pkgs/yandex-music-tui.nix { })
+      (pkgs.callPackage ./pkgs/snowhush.nix { })
     ]
     # Основные утилиты и окружение
     ++ (with pkgs; [

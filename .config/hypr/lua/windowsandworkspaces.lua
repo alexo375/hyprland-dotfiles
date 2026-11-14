@@ -87,3 +87,10 @@ hl.window_rule({
     size = { 470, 632 },
     move = { 605, 276 },
 })
+
+-- Snowhush Settings Window
+hl.window_rule({
+    match = { class = "^([Ss]nowhush.*)$" },
+    float = true,
+    center = true,
+})
